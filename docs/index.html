@@ -1,23 +1,20 @@
-<<<<<<< HEAD
-=======
-<<<<<<<< HEAD:index.html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>사업지구 공정률 대시보드</title>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <!-- Firebase (Compat for simplicity) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
   <style>
-    :root {
-      --bg:#0b1020; --card:#111834; --muted:#8fa3c1; --text:#e8eefb; --brand:#5aa0ff; --accent:#46e0b7; --danger:#ef4444;
-      --ring:#233053;
-    }
+    :root { --bg:#0b1020; --card:#111834; --muted:#8fa3c1; --text:#e8eefb; --brand:#5aa0ff; --accent:#46e0b7; --danger:#ef4444; --ring:#233053; }
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#0a0f1e 0%,#0b1226 100%);color:var(--text);
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
@@ -62,546 +59,72 @@
     .spacer{flex:1}
     .hidden{display:none}
 
-    /* 새로운 대시보드 레이아웃 */
+    /* 대시보드 레이아웃(차트 좌 / 우측 2열) */
     .dash{display:grid;grid-template-columns:380px 1fr;gap:16px}
-    @media (max-width: 980px){
-      .dash{grid-template-columns:1fr}
-    }
-    .dash-left .kpi{margin-top:4px}
+    @media (max-width: 980px){ .dash{grid-template-columns:1fr} }
     .dash-right{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,auto);gap:16px}
     .span-2{grid-column:1 / span 2}
+    .badge{border:1px solid #2d3d72;background:#0e1b40;padding:4px 8px;border-radius:999px;font-size:12px;color:#cfe0ff}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap flex" style="padding:12px 20px">
-      <div class="flex" style="gap:10px">
-        <span class="tag">사업지구 공정률 대시보드</span>
-        <span class="muted">실시간 동기화 (Firebase)</span>
-      </div>
-      <div class="spacer"></div>
-      <div class="flex">
-        <span id="userInfo" class="muted">로그인 필요</span>
-        <button id="btnSignIn" class="btn">Google 로그인</button>
-        <button id="btnSignOut" class="btn hidden">로그아웃</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap" style="padding-top:16px">
-    <!-- NEW DASHBOARD LAYOUT: 도넛 왼쪽, 오른쪽에 top/bottom/확인사항 (2줄 배치) -->
-    <div class="dash">
-      <!-- LEFT: Donut -->
-      <div class="card dash-left"><div class="pad">
-        <h2>전체 공정률</h2>
-        <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
-        <canvas id="overallDonut" style="margin-top:6px;height:120px"></canvas>
-      </div></div>
-
-      <!-- RIGHT: grid (row1: top/bottom, row2: 확인사항 span2) -->
-      <div class="dash-right">
-        <div class="card"><div class="pad">
-          <h2>Top 3 사업지구</h2>
-          <ol id="top3" class="muted" style="padding-left:18px;margin:0"></ol>
-          <div class="footer">진행률(%) 기준</div>
-        </div></div>
-        <div class="card"><div class="pad">
-          <h2>Bottom 3 사업지구</h2>
-          <ol id="bottom3" class="muted" style="padding-left:18px;margin:0"></ol>
-          <div class="footer">진행률(%) 기준</div>
-        </div></div>
-        <div class="card span-2"><div class="pad">
-          <h2>확인사항</h2>
-          <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 리스크, 대민 안내 필요사항 등"></textarea>
-          <div class="footer">※ 로그인 시 팀 전체와 실시간 공유됩니다.</div>
-        </div></div>
-      </div>
-    </div>
-
-    <!-- CONTROLS -->
-    <div class="card" style="margin-top:16px"><div class="pad">
-      <h2>관리자 도구</h2>
-      <div class="btn-row" style="margin-bottom:10px">
-        <button id="btnNewWeek" class="btn">새 주 시작 (지난 주 값 자동 이월)</button>
-        <button id="btnAddSample" class="btn accent">샘플 데이터 추가</button>
-        <button id="btnExport" class="btn">CSV 내보내기</button>
-      </div>
-      <div class="row cols-2">
-        <div>
-          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
-          <div class="row cols-2">
-            <input id="inName" type="text" placeholder="사업지구명" />
-            <input id="inTeam" type="text" placeholder="담당팀" />
-          </div>
-          <div class="row cols-2" style="margin-top:8px">
-            <input id="inTotal" type="number" placeholder="총 필지" />
-            <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
-          </div>
-          <div class="btn-row" style="margin-top:8px">
-            <button id="btnAddProject" class="btn">추가</button>
-          </div>
-          <div class="footer">※ 로그인한 사용자만 수정/추가 가능. 지난 주 대비 변동 시 붉은 굵은 글씨로 Δ 표시.</div>
-        </div>
-        <div>
-          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">설명</h3>
-          <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-            <li>도넛 차트: 전체 완료/잔여 필지 (차트 높이 절반 적용)</li>
-            <li>Top/Bottom 3: 진행률 상/하위</li>
-            <li>확인사항: 전사 공유 메모(실시간)</li>
-          </ul>
-        </div>
-      </div>
-    </div></div>
-
-    <!-- TABLE -->
-    <div class="card" style="margin-top:16px"><div class="pad">
-      <h2>담당팀별 사업지구 현황</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>담당팀</th>
-            <th>사업지구</th>
-            <th>총 필지</th>
-            <th>완료 (이번 주)</th>
-            <th>공정률 (%)</th>
-            <th>Δ 주간 (pp)</th>
-            <th>LX 인수인계</th>
-            <th>소관청 피드백</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div></div>
-
-  </main>
-
-  <script>
-  // =========================
-  // 1) Firebase 설정 (아래를 본인 프로젝트 정보로 교체)
-  // =========================
-  const firebaseConfig = {
-    apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
-    authDomain: "weekend-6d16d.firebaseapp.com",
-    projectId: "weekend-6d16d",
-    storageBucket: "weekend-6d16d.firebasestorage.app",
-    messagingSenderId: "399772383646",
-    appId: "1:399772383646:web:21208b83404479669c3e8f",
-    measurementId: "G-35FK2FRMBZ"
-};
-
-  // 간단한 헬퍼: config가 채워졌는지 확인
-  function looksUnconfigured(cfg){
-    return Object.values(cfg).some(v => typeof v === 'string' && v.startsWith('YOUR_'));
-  }
-
-  let app, db, auth;
-  let unsubscribeProjects = null;
-  let donutChart = null;
-  let currentUser = null;
-
-  try {
-    if(looksUnconfigured(firebaseConfig)){
-      throw new Error('Firebase 설정이 필요합니다. index.html 상단의 firebaseConfig를 교체하세요.');
-    }
-    app = firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    auth = firebase.auth();
-  } catch(err){
-    console.error(err);
-    // Firebase 미설정 시 데모 모드 경고만 출력
-    document.getElementById('userInfo').textContent = 'Firebase 미설정 (보기 전용)';
-    document.getElementById('btnSignIn').disabled = true;
-    document.getElementById('btnSignOut').disabled = true;
-  }
-
-  // =========================
-  // 2) 로그인 / 권한
-  // =========================
-  const btnSignIn = document.getElementById('btnSignIn');
-  const btnSignOut = document.getElementById('btnSignOut');
-  const userInfo = document.getElementById('userInfo');
-
-  if(auth){
-    auth.onAuthStateChanged(user => {
-      currentUser = user;
-      if(user){
-        userInfo.textContent = `${user.displayName || user.email} 님 로그인`;
-        btnSignIn.classList.add('hidden');
-        btnSignOut.classList.remove('hidden');
-        setControlsEnabled(true);
-      } else {
-        userInfo.textContent = '로그인 필요';
-        btnSignIn.classList.remove('hidden');
-        btnSignOut.classList.add('hidden');
-        setControlsEnabled(false);
+  <!--
+    🔐 Firestore 규칙(필수):
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /{document=**} { allow read: if true; } // 모두 읽기
+        match /projects/{doc} { allow write: if isEditor(); }
+        match /settings/{doc} { allow write: if isEditor(); }
+        match /roles/{uid} {
+          allow read: if true;
+          allow write: if isAdmin(); // 관리자만 roles 조작
+        }
+        match /edit_requests/{uid} {
+          allow create: if request.auth != null && request.auth.uid == uid;
+          allow read, update, delete: if isAdmin();
+        }
+        function isEditor() {
+          return request.auth != null
+            && exists(/databases/$(database)/documents/roles/$(request.auth.uid));
+        }
+        function isAdmin() {
+          return request.auth != null
+            && exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+            && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == "admin";
+        }
       }
-    });
-
-    btnSignIn.addEventListener('click', async () => {
-      try{
-        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-      }catch(e){ alert(e.message); }
-    });
-    btnSignOut.addEventListener('click', async () => {
-      await auth.signOut();
-    });
-  }
-
-  function setControlsEnabled(enabled){
-    const adminBtns = [document.getElementById('btnNewWeek'), document.getElementById('btnAddProject'), document.getElementById('btnAddSample')];
-    adminBtns.forEach(b => b && (b.disabled = !enabled));
-    // 확인사항 편집 가능 여부
-    document.getElementById('checklist').disabled = !enabled;
-    renderProjects(latestProjects);
-  }
-
-  // =========================
-  // 3) Firestore 데이터 구조
-  //    컬렉션: projects (표/대시보드용)
-  //    문서 필드 예시:
-  //    { name, team, total, completed, completed_last_week, lxNotes, authorityFeedback, updatedAt }
-  //    문서: settings/dashboard (확인사항 공유 메모)
-  //    { checklist: string }
-  // =========================
-  const tbody = document.getElementById('tbody');
-  const top3El = document.getElementById('top3');
-  const bottom3El = document.getElementById('bottom3');
-  const kpiProgressEl = document.getElementById('kpiProgress');
-  const kpiParcelsEl = document.getElementById('kpiParcels');
-  const checklistEl = document.getElementById('checklist');
-
-  let latestProjects = [];
-
-  if(db){
-    // 실시간 구독: projects
-    unsubscribeProjects = db.collection('projects').orderBy('team').orderBy('name').onSnapshot(snap => {
-      latestProjects = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      renderProjects(latestProjects);
-      renderDashboard(latestProjects);
-    });
-
-    // 실시간 구독: 확인사항 메모
-    db.collection('settings').doc('dashboard').onSnapshot(doc => {
-      const d = doc.data() || {};
-      checklistEl.value = d.checklist || '';
-    });
-  } else {
-    // Firebase 없는 경우: 예시 데이터 화면 표시
-    latestProjects = [
-      {id:'EX1', name:'A-1지구', team:'1팀', total:100, completed:42, completed_last_week:35, lxNotes:'예시 메모', authorityFeedback:'예시 피드백'},
-      {id:'EX2', name:'B-2지구', team:'1팀', total:80, completed:68, completed_last_week:60, lxNotes:'', authorityFeedback:''},
-      {id:'EX3', name:'C-1지구', team:'2팀', total:120, completed:25, completed_last_week:25, lxNotes:'', authorityFeedback:''},
-      {id:'EX4', name:'D-5지구', team:'2팀', total:60, completed:55, completed_last_week:40, lxNotes:'', authorityFeedback:''},
-      {id:'EX5', name:'E-3지구', team:'3팀', total:90, completed:10, completed_last_week:9, lxNotes:'', authorityFeedback:''},
-    ];
-    renderProjects(latestProjects);
-    renderDashboard(latestProjects);
-    checklistEl.value = '데모 모드입니다. Firebase 연결 시 실시간 공유됩니다.';
-    checklistEl.disabled = true;
-  }
-
-  checklistEl.addEventListener('input', debounce(async ()=>{
-    if(!(auth && currentUser && db)) return; // 비로그인 시 무시
-    try{
-      await db.collection('settings').doc('dashboard').set({ checklist: checklistEl.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-    }catch(e){ console.error(e); }
-  }, 600));
-
-  function pct(completed,total){
-    const p = (!total||total<=0) ? 0 : (completed/total*100);
-    return Math.round(p*10)/10; // 0.1 단위 반올림
-  }
-
-  function renderDashboard(rows){
-    // KPI
-    const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
-    const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
-    const progress = pct(doneAll,totalAll);
-    kpiProgressEl.textContent = progress.toFixed(1) + '%';
-    kpiParcelsEl.textContent = `${doneAll} / ${totalAll} 필지`;
-
-    // 도넛 (높이 절반)
-    const remain = Math.max(0,totalAll-doneAll);
-    const data = { labels:['완료','잔여'], datasets:[{ data:[doneAll, remain] }] };
-    const opt = { plugins:{ legend:{ labels:{ color:'#cfe0ff' } } }, scales:{} };
-    const ctx = document.getElementById('overallDonut');
-    if(donutChart){ donutChart.data = data; donutChart.update(); }
-    else { donutChart = new Chart(ctx,{ type:'doughnut', data, options:opt }); }
-
-    // Top/Bottom 3
-    const withPct = rows.map(r=> ({...r, p:pct(Number(r.completed)||0, Number(r.total)||0)}));
-    const valid = withPct.filter(r=> (Number(r.total)||0)>0);
-    valid.sort((a,b)=>b.p - a.p);
-    const top = valid.slice(0,3);
-    const bottom = valid.slice(-3).reverse();
-    top3El.innerHTML = top.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
-    bottom3El.innerHTML = bottom.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
-  }
-
-  function renderProjects(rows){
-    const tbody = document.getElementById('tbody');
-    tbody.innerHTML = '';
-    rows.forEach(r => {
-      const total = Number(r.total)||0;
-      const comp  = Number(r.completed)||0;
-      const last  = Number(r.completed_last_week)||0;
-      const pNow  = pct(comp,total);
-      const pPrev = pct(last,total);
-      const diff  = Math.round((pNow - pPrev)*10)/10; // pp
-      const changed = Math.abs(diff) > 0.0001;
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${esc(r.team||'')}</td>
-        <td>${esc(r.name||'')}</td>
-        <td>
-          <input type=\"number\" class=\"in-total\" data-id=\"${r.id}\" value=\"${total}\" ${editableAttr()} />
-        </td>
-        <td>
-          <input type=\"number\" class=\"in-completed\" data-id=\"${r.id}\" value=\"${comp}\" ${editableAttr()} />
-        </td>
-        <td>${pNow.toFixed(1)}%</td>
-        <td class=\"delta ${changed? 'changed':''}\">${changed? (diff>0?'+':'')+diff.toFixed(1) : '—'}</td>
-        <td>
-          <textarea class=\"in-lx\" data-id=\"${r.id}\" ${editableAttr()}>${esc(r.lxNotes||'')}</textarea>
-        </td>
-        <td>
-          <textarea class=\"in-auth\" data-id=\"${r.id}\" ${editableAttr()}>${esc(r.authorityFeedback||'')}</textarea>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    // 이벤트 바인딩 (debounce)
-    tbody.querySelectorAll('.in-total').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'total', toNum(e.target.value)), 500));
-    });
-    tbody.querySelectorAll('.in-completed').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'completed', toNum(e.target.value)), 500));
-    });
-    tbody.querySelectorAll('.in-lx').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'lxNotes', e.target.value), 700));
-    });
-    tbody.querySelectorAll('.in-auth').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'authorityFeedback', e.target.value), 700));
-    });
-  }
-
-  function editableAttr(){
-    return (auth && currentUser) ? '' : 'disabled';
-  }
-
-  function toNum(v){
-    const n = Number(v);
-    return isFinite(n) ? n : 0;
-  }
-
-  function esc(s){
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-  }
-
-  async function saveField(el, field, value){
-    if(!(auth && currentUser && db)) return; // 비로그인 시 무시
-    const id = el.getAttribute('data-id');
-    try{
-      await db.collection('projects').doc(id).update({ [field]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    }catch(e){ alert('저장 실패: '+ e.message); }
-  }
-
-  // =========================
-  // 4) 관리자 도구: 새 주 시작 / 추가 / 샘플 / CSV
-  // =========================
-  document.getElementById('btnNewWeek').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
-    if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
-    const snap = await db.collection('projects').get();
-    const batch = db.batch();
-    snap.forEach(doc => {
-      const d = doc.data();
-      batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    });
-    await batch.commit();
-    alert('새 주가 시작되었습니다. (지난 주 값 이월 완료)');
-  });
-
-  document.getElementById('btnAddProject').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
-    const name = document.getElementById('inName').value.trim();
-    const team = document.getElementById('inTeam').value.trim();
-    const total = toNum(document.getElementById('inTotal').value);
-    const completed = toNum(document.getElementById('inCompleted').value);
-    if(!name || !team) return alert('사업지구명과 팀을 입력하세요.');
-    try{
-      await db.collection('projects').add({
-        name, team, total, completed, completed_last_week: completed,
-        lxNotes:'', authorityFeedback:'',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      document.getElementById('inName').value='';
-      document.getElementById('inTeam').value='';
-      document.getElementById('inTotal').value='';
-      document.getElementById('inCompleted').value='';
-    }catch(e){ alert('추가 실패: '+e.message); }
-  });
-
-  document.getElementById('btnAddSample').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
-    const samples = [
-      {name:'제주-서부1지구', team:'A팀', total:140, completed:90},
-      {name:'제주-서부2지구', team:'A팀', total:110, completed:45},
-      {name:'제주-북부지구',  team:'B팀', total:95,  completed:80},
-      {name:'제주-중산간지구',team:'B팀', total:200, completed:60},
-      {name:'제주-서귀포지구',team:'C팀', total:150, completed:15},
-    ];
-    const batch = db.batch();
-    const col = db.collection('projects');
-    samples.forEach(s => {
-      const ref = col.doc();
-      batch.set(ref, {
-        ...s,
-        completed_last_week: s.completed,
-        lxNotes:'', authorityFeedback:'',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    });
-    await batch.commit();
-    alert('샘플 데이터가 추가되었습니다.');
-  });
-
-  document.getElementById('btnExport').addEventListener('click', () => {
-    exportCSV(latestProjects);
-  });
-
-  function exportCSV(rows){
-    const headers = ['team','name','total','completed','completed_last_week','progress_now','progress_prev','delta_pp','lxNotes','authorityFeedback'];
-    const lines = [headers.join(',')];
-    rows.forEach(r => {
-      const total = Number(r.total)||0, comp=Number(r.completed)||0, last=Number(r.completed_last_week)||0;
-      const pNow=pct(comp,total), pPrev=pct(last,total), d=(pNow-pPrev).toFixed(1);
-      const vals = [r.team||'', r.name||'', total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||''), quote(r.authorityFeedback||'')];
-      lines.push(vals.join(','));
-    });
-    const blob = new Blob(["﻿" + lines.join('
-')], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.download='projects.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-  function quote(s){
-    const t = String(s).replaceAll('"','""');
-    return '"'+t+'"';
-  }
-
-  // =========================
-  // 5) 유틸: debounce
-  // =========================
-  function debounce(fn, wait){
-    let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
-  }
-  </script>
-</body>
-</html>
-========
->>>>>>> 5fa3188a4d3c6e2c406958897c57ce5c544f6fa2
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>사업지구 공정률 대시보드</title>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Firebase (Compat for simplicity) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <style>
-    :root {
-      --bg:#0b1020; --card:#111834; --muted:#8fa3c1; --text:#e8eefb; --brand:#5aa0ff; --accent:#46e0b7; --danger:#ef4444;
-      --ring:#233053;
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0a0f1e 0%,#0b1226 100%);color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
-    header{position:sticky;top:0;z-index:10;backdrop-filter:blur(6px);background:rgba(10,15,30,.7);border-bottom:1px solid #1b2446}
-    .wrap{max-width:1200px;margin:0 auto;padding:20px}
-    .row{display:grid;gap:16px}
-    .row.cols-2{grid-template-columns:repeat(2,1fr)}
-    .card{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
-    .card h2{font-size:18px;margin:0 0 8px 0;color:#cfe0ff}
-    .card .pad{padding:16px}
-    .kpi{display:flex;align-items:baseline;gap:8px}
-    .kpi .big{font-size:24px;font-weight:800}
-    .kpi .sub{font-size:13px;color:var(--muted)}
-    .muted{color:var(--muted)}
-    .btn{appearance:none;border:1px solid #2a3a70;background:#12204a;color:#eaf2ff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
-    .btn:hover{background:#16265a}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
-    .danger{background:#2b0e13;border-color:#4a0d17}
-    .danger:hover{background:#3a131a}
-    .accent{background:#0d2b24;border-color:#0a4034}
-    .accent:hover{background:#123c32}
+    ⚠️ 최초 1회: 콘솔에서 관리자 UID로 roles/{adminUid} = {role:"admin"} 문서를 수동 생성
+  -->
 
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
-    thead th{font-size:12px;text-transform:uppercase;color:#a9b8d9;text-align:left;padding:0 8px}
-    tbody td{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-left:0;border-right:0;padding:12px 8px}
-    tbody tr{border-radius:12px;overflow:hidden}
-    tbody td:first-child{border-left:1px solid #1b2446;border-top-left-radius:12px;border-bottom-left-radius:12px}
-    tbody td:last-child{border-right:1px solid #1b2446;border-top-right-radius:12px;border-bottom-right-radius:12px}
-
-    input[type="number"], input[type="text"], textarea, select{
-      width:100%;background:#0a1330;border:1px solid #1f2c57;color:#e8eefb;border-radius:10px;padding:8px;outline:none
-    }
-    input:focus, textarea:focus{box-shadow:0 0 0 3px var(--ring)}
-    textarea{min-height:64px;resize:vertical}
-
-    .delta{font-weight:700}
-    .delta.changed{color:var(--danger)}
-    .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid #27407d;background:#0c1a3f;padding:6px 10px;border-radius:999px;font-size:12px;color:#cfe0ff}
-    .footer{color:#91a1c4;font-size:12px;margin-top:8px}
-    .flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .spacer{flex:1}
-    .hidden{display:none}
-
-    /* 새로운 대시보드 레이아웃 */
-    .dash{display:grid;grid-template-columns:380px 1fr;gap:16px}
-    @media (max-width: 980px){
-      .dash{grid-template-columns:1fr}
-    }
-    .dash-left .kpi{margin-top:4px}
-    .dash-right{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,auto);gap:16px}
-    .span-2{grid-column:1 / span 2}
-  </style>
-</head>
-<body>
   <header>
     <div class="wrap flex" style="padding:12px 20px">
       <div class="flex" style="gap:10px">
         <span class="tag">사업지구 공정률 대시보드</span>
-        <span class="muted">실시간 동기화 (Firebase)</span>
+        <span class="muted">실시간 동기화 (Firebase · 익명 로그인)</span>
       </div>
       <div class="spacer"></div>
       <div class="flex">
-        <span id="userInfo" class="muted">로그인 필요</span>
-        <button id="btnSignIn" class="btn">Google 로그인</button>
-        <button id="btnSignOut" class="btn hidden">로그아웃</button>
+        <span id="userInfo" class="muted">접속 필요</span>
+        <span id="roleBadge" class="badge hidden"></span>
+        <button id="btnSignIn" class="btn">익명으로 시작</button>
+        <button id="btnSignOut" class="btn hidden">종료</button>
       </div>
     </div>
   </header>
 
   <main class="wrap" style="padding-top:16px">
-    <!-- NEW DASHBOARD LAYOUT: 도넛 왼쪽, 오른쪽에 top/bottom/확인사항 (2줄 배치) -->
+    <!-- DASHBOARD -->
     <div class="dash">
       <!-- LEFT: Donut -->
-      <div class="card dash-left"><div class="pad">
+      <div class="card"><div class="pad">
         <h2>전체 공정률</h2>
         <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
         <canvas id="overallDonut" style="margin-top:6px;height:120px"></canvas>
       </div></div>
 
-      <!-- RIGHT: grid (row1: top/bottom, row2: 확인사항 span2) -->
+      <!-- RIGHT: Top/Bottom + 확인사항 -->
       <div class="dash-right">
         <div class="card"><div class="pad">
           <h2>Top 3 사업지구</h2>
@@ -616,18 +139,19 @@
         <div class="card span-2"><div class="pad">
           <h2>확인사항</h2>
           <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 리스크, 대민 안내 필요사항 등"></textarea>
-          <div class="footer">※ 로그인 시 팀 전체와 실시간 공유됩니다.</div>
+          <div class="footer">※ 에디터/관리자만 편집 가능 · 실시간 공유</div>
         </div></div>
       </div>
     </div>
 
     <!-- CONTROLS -->
     <div class="card" style="margin-top:16px"><div class="pad">
-      <h2>관리자 도구</h2>
+      <h2>관리 도구</h2>
       <div class="btn-row" style="margin-bottom:10px">
-        <button id="btnNewWeek" class="btn">새 주 시작 (지난 주 값 자동 이월)</button>
+        <button id="btnNewWeek" class="btn">새 주 시작(지난 주 이월)</button>
         <button id="btnAddSample" class="btn accent">샘플 데이터 추가</button>
         <button id="btnExport" class="btn">CSV 내보내기</button>
+        <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
       </div>
       <div class="row cols-2">
         <div>
@@ -643,14 +167,14 @@
           <div class="btn-row" style="margin-top:8px">
             <button id="btnAddProject" class="btn">추가</button>
           </div>
-          <div class="footer">※ 로그인한 사용자만 수정/추가 가능. 지난 주 대비 변동 시 붉은 굵은 글씨로 Δ 표시.</div>
+          <div class="footer">※ 편집 권한(roles)에 따라 입력 가능. Δ는 지난 주 대비 변화(pp).</div>
         </div>
         <div>
           <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">설명</h3>
           <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-            <li>도넛 차트: 전체 완료/잔여 필지 (차트 높이 절반 적용)</li>
-            <li>Top/Bottom 3: 진행률 상/하위</li>
-            <li>확인사항: 전사 공유 메모(실시간)</li>
+            <li>좌: 전체 공정률 도넛(높이 절반)</li>
+            <li>우: Top/Bottom3 + 확인사항(실시간)</li>
+            <li>표: 팀별 현황, Δ(pp), LX/소관청 메모</li>
           </ul>
         </div>
       </div>
@@ -676,6 +200,16 @@
       </table>
     </div></div>
 
+    <!-- ADMIN PANEL (관리자 전용) -->
+    <div id="adminPanel" class="card hidden" style="margin-top:16px"><div class="pad">
+      <h2>관리자 패널 · 권한 승인</h2>
+      <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
+      <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
+      <div id="requests"></div>
+      <h3 style="color:#cfe0ff;margin-top:12px">현재 에디터</h3>
+      <div id="editors"></div>
+    </div></div>
+
   </main>
 
   <script>
@@ -683,16 +217,6 @@
   // 1) Firebase 설정 (아래를 본인 프로젝트 정보로 교체)
   // =========================
   const firebaseConfig = {
-<<<<<<< HEAD
-    apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
-    authDomain: "weekend-6d16d.firebaseapp.com",
-    projectId: "weekend-6d16d",
-    storageBucket: "weekend-6d16d.firebasestorage.app",
-    messagingSenderId: "399772383646",
-    appId: "1:399772383646:web:21208b83404479669c3e8f",
-    measurementId: "G-35FK2FRMBZ"
-};
-=======
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
     projectId: "YOUR_PROJECT_ID",
@@ -700,17 +224,16 @@
     messagingSenderId: "YOUR_SENDER_ID",
     appId: "YOUR_APP_ID"
   };
->>>>>>> 5fa3188a4d3c6e2c406958897c57ce5c544f6fa2
 
-  // 간단한 헬퍼: config가 채워졌는지 확인
   function looksUnconfigured(cfg){
     return Object.values(cfg).some(v => typeof v === 'string' && v.startsWith('YOUR_'));
   }
 
   let app, db, auth;
-  let unsubscribeProjects = null;
   let donutChart = null;
   let currentUser = null;
+  let isEditor = false;
+  let isAdmin = false;
 
   try {
     if(looksUnconfigured(firebaseConfig)){
@@ -721,60 +244,80 @@
     auth = firebase.auth();
   } catch(err){
     console.error(err);
-    // Firebase 미설정 시 데모 모드 경고만 출력
     document.getElementById('userInfo').textContent = 'Firebase 미설정 (보기 전용)';
     document.getElementById('btnSignIn').disabled = true;
     document.getElementById('btnSignOut').disabled = true;
   }
 
   // =========================
-  // 2) 로그인 / 권한
+  // 2) 인증 (익명 로그인)
   // =========================
   const btnSignIn = document.getElementById('btnSignIn');
   const btnSignOut = document.getElementById('btnSignOut');
   const userInfo = document.getElementById('userInfo');
+  const roleBadge = document.getElementById('roleBadge');
+  const adminPanel = document.getElementById('adminPanel');
 
   if(auth){
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
       currentUser = user;
       if(user){
-        userInfo.textContent = `${user.displayName || user.email} 님 로그인`;
+        userInfo.textContent = `손님(${user.uid.slice(0,6)}) 접속`;
         btnSignIn.classList.add('hidden');
         btnSignOut.classList.remove('hidden');
+
+        await refreshRole();
         setControlsEnabled(true);
       } else {
-        userInfo.textContent = '로그인 필요';
+        userInfo.textContent = '접속 필요';
         btnSignIn.classList.remove('hidden');
         btnSignOut.classList.add('hidden');
+        roleBadge.classList.add('hidden');
+        isEditor = false; isAdmin = false;
         setControlsEnabled(false);
       }
     });
 
     btnSignIn.addEventListener('click', async () => {
-      try{
-        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-      }catch(e){ alert(e.message); }
+      try { await auth.signInAnonymously(); }
+      catch(e){ alert(`[로그인 실패] ${e.code||''} ${e.message||e}`); }
     });
-    btnSignOut.addEventListener('click', async () => {
-      await auth.signOut();
-    });
+    btnSignOut.addEventListener('click', async () => { await auth.signOut(); });
+  }
+
+  async function refreshRole(){
+    if(!(db && currentUser)) return;
+    const r = await db.collection('roles').doc(currentUser.uid).get();
+    if(r.exists){
+      const role = (r.data().role || 'editor').toLowerCase();
+      isEditor = true;
+      isAdmin = role === 'admin';
+      roleBadge.textContent = isAdmin ? 'admin' : 'editor';
+      roleBadge.classList.remove('hidden');
+      if(isAdmin){ adminPanel.classList.remove('hidden'); bindAdminStreams(); }
+      else { adminPanel.classList.add('hidden'); }
+    } else {
+      isEditor = false; isAdmin = false;
+      roleBadge.textContent = 'view';
+      roleBadge.classList.remove('hidden');
+      adminPanel.classList.add('hidden');
+    }
   }
 
   function setControlsEnabled(enabled){
-    const adminBtns = [document.getElementById('btnNewWeek'), document.getElementById('btnAddProject'), document.getElementById('btnAddSample')];
-    adminBtns.forEach(b => b && (b.disabled = !enabled));
-    // 확인사항 편집 가능 여부
-    document.getElementById('checklist').disabled = !enabled;
+    const ids = ['btnNewWeek','btnAddProject','btnAddSample'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      // 버튼 자체는 로그인 시 활성화하되, 실제 쓰기 권한은 규칙에서 결정
+      el.disabled = !(enabled);
+    });
+    document.getElementById('checklist').disabled = !(enabled && isEditor);
     renderProjects(latestProjects);
   }
 
   // =========================
-  // 3) Firestore 데이터 구조
-  //    컬렉션: projects (표/대시보드용)
-  //    문서 필드 예시:
-  //    { name, team, total, completed, completed_last_week, lxNotes, authorityFeedback, updatedAt }
-  //    문서: settings/dashboard (확인사항 공유 메모)
-  //    { checklist: string }
+  // 3) 데이터 구독
   // =========================
   const tbody = document.getElementById('tbody');
   const top3El = document.getElementById('top3');
@@ -786,73 +329,58 @@
   let latestProjects = [];
 
   if(db){
-    // 실시간 구독: projects
-    unsubscribeProjects = db.collection('projects').orderBy('team').orderBy('name').onSnapshot(snap => {
+    db.collection('projects').orderBy('team').orderBy('name').onSnapshot(snap => {
       latestProjects = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      renderProjects(latestProjects);
-      renderDashboard(latestProjects);
+      renderProjects(latestProjects); renderDashboard(latestProjects);
     });
-
-    // 실시간 구독: 확인사항 메모
     db.collection('settings').doc('dashboard').onSnapshot(doc => {
       const d = doc.data() || {};
       checklistEl.value = d.checklist || '';
     });
-  } else {
-    // Firebase 없는 경우: 예시 데이터 화면 표시
-    latestProjects = [
-      {id:'EX1', name:'A-1지구', team:'1팀', total:100, completed:42, completed_last_week:35, lxNotes:'예시 메모', authorityFeedback:'예시 피드백'},
-      {id:'EX2', name:'B-2지구', team:'1팀', total:80, completed:68, completed_last_week:60, lxNotes:'', authorityFeedback:''},
-      {id:'EX3', name:'C-1지구', team:'2팀', total:120, completed:25, completed_last_week:25, lxNotes:'', authorityFeedback:''},
-      {id:'EX4', name:'D-5지구', team:'2팀', total:60, completed:55, completed_last_week:40, lxNotes:'', authorityFeedback:''},
-      {id:'EX5', name:'E-3지구', team:'3팀', total:90, completed:10, completed_last_week:9, lxNotes:'', authorityFeedback:''},
-    ];
-    renderProjects(latestProjects);
-    renderDashboard(latestProjects);
-    checklistEl.value = '데모 모드입니다. Firebase 연결 시 실시간 공유됩니다.';
-    checklistEl.disabled = true;
   }
 
   checklistEl.addEventListener('input', debounce(async ()=>{
-    if(!(auth && currentUser && db)) return; // 비로그인 시 무시
+    if(!(auth && currentUser && db)) return;
     try{
-      await db.collection('settings').doc('dashboard').set({ checklist: checklistEl.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-    }catch(e){ console.error(e); }
+      await db.collection('settings').doc('dashboard').set({
+        checklist: checklistEl.value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+    }catch(e){
+      if(e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
+      else console.error(e);
+    }
   }, 600));
 
   function pct(completed,total){
     const p = (!total||total<=0) ? 0 : (completed/total*100);
-    return Math.round(p*10)/10; // 0.1 단위 반올림
+    return Math.round(p*10)/10;
   }
 
   function renderDashboard(rows){
-    // KPI
     const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
     const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
     const progress = pct(doneAll,totalAll);
-    kpiProgressEl.textContent = progress.toFixed(1) + '%';
+    kpiProgressEl.textContent = progress.toFixed(1)+'%';
     kpiParcelsEl.textContent = `${doneAll} / ${totalAll} 필지`;
 
-    // 도넛 (높이 절반)
     const remain = Math.max(0,totalAll-doneAll);
     const data = { labels:['완료','잔여'], datasets:[{ data:[doneAll, remain] }] };
-    const opt = { plugins:{ legend:{ labels:{ color:'#cfe0ff' } } }, scales:{} };
+    const opt = { plugins:{ legend:{ labels:{ color:'#cfe0ff' } } }, cutout:'60%' };
     const ctx = document.getElementById('overallDonut');
     if(donutChart){ donutChart.data = data; donutChart.update(); }
     else { donutChart = new Chart(ctx,{ type:'doughnut', data, options:opt }); }
 
-    // Top/Bottom 3
-    const withPct = rows.map(r=> ({...r, p:pct(Number(r.completed)||0, Number(r.total)||0)}));
-    const valid = withPct.filter(r=> (Number(r.total)||0)>0);
-    valid.sort((a,b)=>b.p - a.p);
-    const top = valid.slice(0,3);
-    const bottom = valid.slice(-3).reverse();
+    const withPct = rows.map(r=> ({...r, p:pct(Number(r.completed)||0, Number(r.total)||0)}))
+                        .filter(r=> (Number(r.total)||0) > 0)
+                        .sort((a,b)=>b.p - a.p);
+    const top = withPct.slice(0,3);
+    const bottom = withPct.slice(-3).reverse();
     top3El.innerHTML = top.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
     bottom3El.innerHTML = bottom.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
   }
 
   function renderProjects(rows){
-    const tbody = document.getElementById('tbody');
     tbody.innerHTML = '';
     rows.forEach(r => {
       const total = Number(r.total)||0;
@@ -860,32 +388,23 @@
       const last  = Number(r.completed_last_week)||0;
       const pNow  = pct(comp,total);
       const pPrev = pct(last,total);
-      const diff  = Math.round((pNow - pPrev)*10)/10; // pp
+      const diff  = Math.round((pNow-pPrev)*10)/10;
       const changed = Math.abs(diff) > 0.0001;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${esc(r.team||'')}</td>
         <td>${esc(r.name||'')}</td>
-        <td>
-          <input type=\"number\" class=\"in-total\" data-id=\"${r.id}\" value=\"${total}\" ${editableAttr()} />
-        </td>
-        <td>
-          <input type=\"number\" class=\"in-completed\" data-id=\"${r.id}\" value=\"${comp}\" ${editableAttr()} />
-        </td>
+        <td><input type="number" class="in-total" data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
+        <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${inputEditable()} /></td>
         <td>${pNow.toFixed(1)}%</td>
-        <td class=\"delta ${changed? 'changed':''}\">${changed? (diff>0?'+':'')+diff.toFixed(1) : '—'}</td>
-        <td>
-          <textarea class=\"in-lx\" data-id=\"${r.id}\" ${editableAttr()}>${esc(r.lxNotes||'')}</textarea>
-        </td>
-        <td>
-          <textarea class=\"in-auth\" data-id=\"${r.id}\" ${editableAttr()}>${esc(r.authorityFeedback||'')}</textarea>
-        </td>
+        <td class="delta ${changed?'changed':''}">${changed? (diff>0?'+':'')+diff.toFixed(1):'—'}</td>
+        <td><textarea class="in-lx" data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||'')}</textarea></td>
+        <td><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||'')}</textarea></td>
       `;
       tbody.appendChild(tr);
     });
 
-    // 이벤트 바인딩 (debounce)
     tbody.querySelectorAll('.in-total').forEach(el=>{
       el.addEventListener('input', debounce(e=> saveField(e.target,'total', toNum(e.target.value)), 500));
     });
@@ -900,32 +419,26 @@
     });
   }
 
-  function editableAttr(){
-    return (auth && currentUser) ? '' : 'disabled';
-  }
-
-  function toNum(v){
-    const n = Number(v);
-    return isFinite(n) ? n : 0;
-  }
-
-  function esc(s){
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-  }
+  function inputEditable(){ return (auth && currentUser && isEditor) ? '' : 'disabled'; }
+  function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
+  function esc(s){ return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   async function saveField(el, field, value){
-    if(!(auth && currentUser && db)) return; // 비로그인 시 무시
+    if(!(auth && currentUser && db)) return;
     const id = el.getAttribute('data-id');
     try{
       await db.collection('projects').doc(id).update({ [field]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    }catch(e){ alert('저장 실패: '+ e.message); }
+    }catch(e){
+      if(e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
+      else alert('저장 실패: '+ e.message);
+    }
   }
 
   // =========================
-  // 4) 관리자 도구: 새 주 시작 / 추가 / 샘플 / CSV
+  // 4) 버튼들: 새 주 / 추가 / 샘플 / CSV / 권한요청
   // =========================
   document.getElementById('btnNewWeek').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
+    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
     if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
     const snap = await db.collection('projects').get();
     const batch = db.batch();
@@ -933,12 +446,12 @@
       const d = doc.data();
       batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     });
-    await batch.commit();
-    alert('새 주가 시작되었습니다. (지난 주 값 이월 완료)');
+    try{ await batch.commit(); alert('새 주 시작 완료'); }
+    catch(e){ alert(e.message); }
   });
 
   document.getElementById('btnAddProject').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
+    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
     const name = document.getElementById('inName').value.trim();
     const team = document.getElementById('inTeam').value.trim();
     const total = toNum(document.getElementById('inTotal').value);
@@ -958,7 +471,7 @@
   });
 
   document.getElementById('btnAddSample').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('로그인 필요');
+    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
     const samples = [
       {name:'제주-서부1지구', team:'A팀', total:140, completed:90},
       {name:'제주-서부2지구', team:'A팀', total:110, completed:45},
@@ -970,19 +483,25 @@
     const col = db.collection('projects');
     samples.forEach(s => {
       const ref = col.doc();
-      batch.set(ref, {
-        ...s,
-        completed_last_week: s.completed,
-        lxNotes:'', authorityFeedback:'',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:'', authorityFeedback:'', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     });
-    await batch.commit();
-    alert('샘플 데이터가 추가되었습니다.');
+    try{ await batch.commit(); alert('샘플 데이터 추가 완료'); }
+    catch(e){ alert(e.message); }
   });
 
   document.getElementById('btnExport').addEventListener('click', () => {
     exportCSV(latestProjects);
+  });
+
+  document.getElementById('btnRequestEdit').addEventListener('click', async () => {
+    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
+    const note = prompt('요청 사유를 입력해 주세요 (팀/업무 등)');
+    try{
+      await db.collection('edit_requests').doc(currentUser.uid).set({
+        uid: currentUser.uid, note: note||'', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      alert('요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.');
+    }catch(e){ alert(e.message); }
   });
 
   function exportCSV(rows){
@@ -994,28 +513,89 @@
       const vals = [r.team||'', r.name||'', total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||''), quote(r.authorityFeedback||'')];
       lines.push(vals.join(','));
     });
-    const blob = new Blob(["﻿" + lines.join('
-')], {type:'text/csv;charset=utf-8;'});
+    const bom = new Uint8Array([0xEF,0xBB,0xBF]);
+    const blob = new Blob([bom, lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href=url; a.download='projects.csv'; a.click();
-    URL.revokeObjectURL(url);
+    a.href=url; a.download='projects.csv'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),0);
   }
-  function quote(s){
-    const t = String(s).replaceAll('"','""');
-    return '"'+t+'"';
+  function quote(s){ const t = String(s).replaceAll('"','""'); return `"${t}"`; }
+
+  // =========================
+  // 5) 관리자 패널 (승인/회수)
+  // =========================
+  const requestsBox = document.getElementById('requests');
+  const editorsBox  = document.getElementById('editors');
+  let unsubsAdmin = [];
+
+  function clearAdminStreams(){ unsubsAdmin.forEach(u=>u&&u()); unsubsAdmin=[]; }
+
+  function bindAdminStreams(){
+    clearAdminStreams();
+    if(!isAdmin) return;
+
+    // 승인 대기
+    unsubsAdmin.push(
+      db.collection('edit_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
+        if(snap.empty){ requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
+        requestsBox.innerHTML = snap.docs.map(d=>{
+          const x=d.data();
+          return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                    <div>
+                      <div><b>UID:</b> ${d.id}</div>
+                      <div class="muted">${esc(x.note||'요청 사유 없음')}</div>
+                    </div>
+                    <div class="btn-row">
+                      <button class="btn accent" onclick="approveEditor('${d.id}')">승인</button>
+                      <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
+                    </div>
+                  </div>`;
+        }).join('');
+      })
+    );
+
+    // 현재 에디터 목록
+    unsubsAdmin.push(
+      db.collection('roles').orderBy('role').onSnapshot(snap=>{
+        if(snap.empty){ editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
+        editorsBox.innerHTML = snap.docs.map(d=>{
+          const x=d.data();
+          const badge = (x.role==='admin')? 'admin' : 'editor';
+          return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                    <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${badge}</span></div>
+                    <div class="btn-row">
+                      ${x.role!=='admin' ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">회수</button>`:''}
+                    </div>
+                  </div>`;
+        }).join('');
+      })
+    );
+  }
+
+  // 전역에서 호출되도록 window에 바인딩
+  window.approveEditor = async function(targetUid){
+    try{
+      await db.collection('roles').doc(targetUid).set({ role:'editor', grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+      await db.collection('edit_requests').doc(targetUid).delete();
+      alert('승인 완료');
+    }catch(e){ alert(e.message); }
+  }
+  window.rejectRequest = async function(targetUid){
+    try{ await db.collection('edit_requests').doc(targetUid).delete(); }
+    catch(e){ alert(e.message); }
+  }
+  window.revokeEditor = async function(targetUid){
+    if(!confirm('이 사용자의 편집 권한을 회수할까요?')) return;
+    try{ await db.collection('roles').doc(targetUid).delete(); alert('회수 완료'); }
+    catch(e){ alert(e.message); }
   }
 
   // =========================
-  // 5) 유틸: debounce
+  // 6) 유틸
   // =========================
-  function debounce(fn, wait){
-    let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
-  }
+  function debounce(fn, wait){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; }
+
   </script>
 </body>
 </html>
-<<<<<<< HEAD
-=======
->>>>>>>> 5fa3188a4d3c6e2c406958897c57ce5c544f6fa2:docs/index.html
->>>>>>> 5fa3188a4d3c6e2c406958897c57ce5c544f6fa2
