@@ -185,384 +185,385 @@
   </main>
 
   <script>
-  // =========================
-  // 1) Firebase 설정 (네 프로젝트 값)
-  // =========================
-  const firebaseConfig = {
-    apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
-    authDomain: "weekend-6d16d.firebaseapp.com",
-    projectId: "weekend-6d16d",
-    storageBucket: "weekend-6d16d.appspot.com", // ← 정확한 값
-    messagingSenderId: "399772383646",
-    appId: "1:399772383646:web:21208b83404479669c3e8f",
-    measurementId: "G-35FK2FRMBZ"
-  };
+// =========================
+// 1) Firebase 설정 (네 프로젝트 값)
+// =========================
+const firebaseConfig = {
+  apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
+  authDomain: "weekend-6d16d.firebaseapp.com",
+  projectId: "weekend-6d16d",
+  storageBucket: "weekend-6d16d.appspot.com", // 정확한 값
+  messagingSenderId: "399772383646",
+  appId: "1:399772383646:web:21208b83404479669c3e8f",
+  measurementId: "G-35FK2FRMBZ"
+};
 
-  // =========================
-  // 2) 초기화
-  // =========================
-  let app, db, auth;
-  let donutChart = null;
-  let currentUser = null;
-  let isEditor = false;
-  let isAdmin = false;
+// =========================
+let app, db, auth;
+let donutChart = null;
+let currentUser = null;
+let isEditor = false;
+let isAdmin = false;
 
-  try {
-    app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    auth = firebase.auth();
-  } catch(err){
-    console.error(err);
-    document.getElementById('userInfo').textContent = 'Firebase 미설정 (보기 전용)';
-    document.getElementById('btnSignIn').disabled = true;
-    document.getElementById('btnSignOut').disabled = true;
-  }
+try {
+  app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+  db  = firebase.firestore();
+  auth = firebase.auth();
+} catch (err) {
+  console.error('[Firebase 초기화 실패]', err);
+  document.getElementById('userInfo').textContent = 'Firebase 미설정 (보기 전용)';
+}
 
-  // =========================
-  // 3) 인증 (익명 로그인)
-  // =========================
-  const btnSignIn = document.getElementById('btnSignIn');
-  const btnSignOut = document.getElementById('btnSignOut');
-  const userInfo = document.getElementById('userInfo');
-  const roleBadge = document.getElementById('roleBadge');
-  const adminPanel = document.getElementById('adminPanel');
+// =========================
+// 2) 인증 (익명 로그인)
+// =========================
+const btnSignIn  = document.getElementById('btnSignIn');
+const btnSignOut = document.getElementById('btnSignOut');
+const userInfo   = document.getElementById('userInfo');
+const roleBadge  = document.getElementById('roleBadge');
+const adminPanel = document.getElementById('adminPanel');
 
-  if(auth){
-    auth.onAuthStateChanged(async user => {
-      currentUser = user;
-      if(user){
-        userInfo.textContent = `손님(${user.uid.slice(0,6)}) 접속`;
-        btnSignIn.classList.add('hidden');
-        btnSignOut.classList.remove('hidden');
+if (auth) {
+  auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+      userInfo.textContent = `손님(${user.uid.slice(0,6)}) 접속`;
+      btnSignIn.classList.add('hidden');
+      btnSignOut.classList.remove('hidden');
 
-        await refreshRole();
-        setControlsEnabled(true);
-      } else {
-        userInfo.textContent = '접속 필요';
-        btnSignIn.classList.remove('hidden');
-        btnSignOut.classList.add('hidden');
-        roleBadge.classList.add('hidden');
-        isEditor = false; isAdmin = false;
-        setControlsEnabled(false);
-      }
-    });
-
-    btnSignIn.addEventListener('click', async () => {
-      try { await auth.signInAnonymously(); }
-      catch(e){ alert(`[로그인 실패] ${e.code||''} ${e.message||e}`); }
-    });
-    btnSignOut.addEventListener('click', async () => { await auth.signOut(); });
-  }
-
-  async function refreshRole(){
-    if(!(db && currentUser)) return;
-    const r = await db.collection('roles').doc(currentUser.uid).get();
-    if(r.exists){
-      const role = (r.data().role || 'editor').toLowerCase();
-      isEditor = true;
-      isAdmin = role === 'admin';
-      roleBadge.textContent = isAdmin ? 'admin' : 'editor';
-      roleBadge.classList.remove('hidden');
-      if(isAdmin){ adminPanel.classList.remove('hidden'); bindAdminStreams(); }
-      else { adminPanel.classList.add('hidden'); }
+      await refreshRole();
+      setControlsEnabled(true);
     } else {
+      userInfo.textContent = '접속 필요';
+      btnSignIn.classList.remove('hidden');
+      btnSignOut.classList.add('hidden');
+      roleBadge.classList.add('hidden');
       isEditor = false; isAdmin = false;
-      roleBadge.textContent = 'view';
-      roleBadge.classList.remove('hidden');
-      adminPanel.classList.add('hidden');
+      setControlsEnabled(false);
     }
-  }
+  });
 
-  function setControlsEnabled(enabled){
-    const ids = ['btnNewWeek','btnAddProject','btnAddSample'];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.disabled = !(enabled);
-    });
-    document.getElementById('checklist').disabled = !(enabled && isEditor);
+  btnSignIn.addEventListener('click', async () => {
+    try { await auth.signInAnonymously(); }
+    catch (e) { alert(`[로그인 실패] ${e.code||''} ${e.message||e}`); }
+  });
+  btnSignOut.addEventListener('click', async () => { await auth.signOut(); });
+}
+
+// roles/{uid} 확인 → 배지/권한 세팅
+async function refreshRole() {
+  if (!(db && currentUser)) return;
+  const r = await db.collection('roles').doc(currentUser.uid).get();
+  if (r.exists) {
+    const role = (r.data().role || 'editor').toLowerCase();
+    isEditor = true; isAdmin = role === 'admin';
+    roleBadge.textContent = role;
+    roleBadge.classList.remove('hidden');
+    if (isAdmin) { adminPanel?.classList.remove('hidden'); bindAdminStreams(); }
+    else         { adminPanel?.classList.add('hidden'); }
+  } else {
+    isEditor = false; isAdmin = false;
+    roleBadge.textContent = 'view';
+    roleBadge.classList.remove('hidden');
+    adminPanel?.classList.add('hidden');
+  }
+}
+
+function setControlsEnabled(enabled) {
+  ['btnNewWeek','btnAddProject','btnAddSample'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.disabled = !enabled;
+  });
+  const checklist = document.getElementById('checklist');
+  if (checklist) checklist.disabled = !(enabled && isEditor);
+  renderProjects(latestProjects);
+}
+
+// =========================
+// 3) 데이터 구독
+// =========================
+const tbody         = document.getElementById('tbody');
+const top3El        = document.getElementById('top3');
+const bottom3El     = document.getElementById('bottom3');
+const kpiProgressEl = document.getElementById('kpiProgress');
+const kpiParcelsEl  = document.getElementById('kpiParcels');
+const checklistEl   = document.getElementById('checklist');
+
+let latestProjects = [];
+
+if (db) {
+  // 복합 인덱스 없이 동작: team만 서버 정렬, name은 클라이언트에서 정렬
+  db.collection('projects').orderBy('team').onSnapshot((snap) => {
+    latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    latestProjects.sort((a,b)=>
+      String(a.team||'').localeCompare(String(b.team||'')) ||
+      String(a.name||'').localeCompare(String(b.name||''))
+    );
     renderProjects(latestProjects);
-  }
-
-  // =========================
-  // 4) 데이터 구독
-  // =========================
-  const tbody = document.getElementById('tbody');
-  const top3El = document.getElementById('top3');
-  const bottom3El = document.getElementById('bottom3');
-  const kpiProgressEl = document.getElementById('kpiProgress');
-  const kpiParcelsEl = document.getElementById('kpiParcels');
-  const checklistEl = document.getElementById('checklist');
-
-  let latestProjects = [];
-
-  if(db){
-    db.collection('projects').orderBy('team').orderBy('name').onSnapshot(snap => {
-      latestProjects = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      renderProjects(latestProjects); renderDashboard(latestProjects);
-    });
-    db.collection('settings').doc('dashboard').onSnapshot(doc => {
-      const d = doc.data() || {};
-      checklistEl.value = d.checklist || '';
-    });
-  }
-
-  checklistEl.addEventListener('input', debounce(async ()=>{
-    if(!(auth && currentUser && db)) return;
-    try{
-      await db.collection('settings').doc('dashboard').set({
-        checklist: checklistEl.value,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge:true });
-    }catch(e){
-      if(e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
-      else console.error(e);
-    }
-  }, 600));
-
-  function pct(completed,total){
-    const p = (!total||total<=0) ? 0 : (completed/total*100);
-    return Math.round(p*10)/10;
-  }
-
-  function renderDashboard(rows){
-    const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
-    const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
-    const progress = pct(doneAll,totalAll);
-    kpiProgressEl.textContent = progress.toFixed(1)+'%';
-    kpiParcelsEl.textContent = `${doneAll} / ${totalAll} 필지`;
-
-    const remain = Math.max(0,totalAll-doneAll);
-    const data = { labels:['완료','잔여'], datasets:[{ data:[doneAll, remain] }] };
-    const opt = { plugins:{ legend:{ labels:{ color:'#cfe0ff' } } }, cutout:'60%' };
-    const ctx = document.getElementById('overallDonut');
-    if(donutChart){ donutChart.data = data; donutChart.update(); }
-    else { donutChart = new Chart(ctx,{ type:'doughnut', data, options:opt }); }
-
-    const withPct = rows.map(r=> ({...r, p:pct(Number(r.completed)||0, Number(r.total)||0)}))
-                        .filter(r=> (Number(r.total)||0) > 0)
-                        .sort((a,b)=>b.p - a.p);
-    const top = withPct.slice(0,3);
-    const bottom = withPct.slice(-3).reverse();
-    top3El.innerHTML = top.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
-    bottom3El.innerHTML = bottom.map(r=>`<li>${r.name} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
-  }
-
-  function renderProjects(rows){
-    tbody.innerHTML = '';
-    rows.forEach(r => {
-      const total = Number(r.total)||0;
-      const comp  = Number(r.completed)||0;
-      const last  = Number(r.completed_last_week)||0;
-      const pNow  = pct(comp,total);
-      const pPrev = pct(last,total);
-      const diff  = Math.round((pNow - pPrev)*10)/10;
-      const changed = Math.abs(diff) > 0.0001;
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${esc(r.team||'')}</td>
-        <td>${esc(r.name||'')}</td>
-        <td><input type="number" class="in-total" data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
-        <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${inputEditable()} /></td>
-        <td>${pNow.toFixed(1)}%</td>
-        <td class="delta ${changed? 'changed':''}">${changed? (diff>0?'+':'')+diff.toFixed(1) : '—'}</td>
-        <td><textarea class="in-lx" data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||'')}</textarea></td>
-        <td><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||'')}</textarea></td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('.in-total').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'total', toNum(e.target.value)), 500));
-    });
-    tbody.querySelectorAll('.in-completed').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'completed', toNum(e.target.value)), 500));
-    });
-    tbody.querySelectorAll('.in-lx').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'lxNotes', e.target.value), 700));
-    });
-    tbody.querySelectorAll('.in-auth').forEach(el=>{
-      el.addEventListener('input', debounce(e=> saveField(e.target,'authorityFeedback', e.target.value), 700));
-    });
-  }
-
-  function inputEditable(){ return (auth && currentUser && isEditor) ? '' : 'disabled'; }
-  function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
-  function esc(s){ return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[c])); }
-
-  async function saveField(el, field, value){
-    if(!(auth && currentUser && db)) return;
-    const id = el.getAttribute('data-id');
-    try{
-      await db.collection('projects').doc(id).update({ [field]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    }catch(e){
-      if(e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
-      else alert('저장 실패: '+ e.message);
-    }
-  }
-
-  // =========================
-  // 5) 버튼들: 새 주 / 추가 / 샘플 / CSV / 권한요청
-  // =========================
-  document.getElementById('btnNewWeek').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
-    if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
-    const snap = await db.collection('projects').get();
-    const batch = db.batch();
-    snap.forEach(doc => {
-      const d = doc.data();
-      batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    });
-    try{ await batch.commit(); alert('새 주 시작 완료'); }
-    catch(e){ alert(e.message); }
+    renderDashboard(latestProjects);
   });
 
-  document.getElementById('btnAddProject').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
-    const name = document.getElementById('inName').value.trim();
-    const team = document.getElementById('inTeam').value.trim();
-    const total = toNum(document.getElementById('inTotal').value);
-    const completed = toNum(document.getElementById('inCompleted').value);
-    if(!name || !team) return alert('사업지구명과 팀을 입력하세요.');
-    try{
-      await db.collection('projects').add({
-        name, team, total, completed, completed_last_week: completed,
-        lxNotes:'', authorityFeedback:'',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      document.getElementById('inName').value='';
-      document.getElementById('inTeam').value='';
-      document.getElementById('inTotal').value='';
-      document.getElementById('inCompleted').value='';
-    }catch(e){ alert('추가 실패: '+e.message); }
+  db.collection('settings').doc('dashboard').onSnapshot(doc => {
+    const d = doc.data() || {};
+    if (checklistEl) checklistEl.value = d.checklist || '';
+  });
+}
+
+checklistEl?.addEventListener('input', debounce(async ()=>{
+  if (!(auth && currentUser && db)) return;
+  try {
+    await db.collection('settings').doc('dashboard').set({
+      checklist: checklistEl.value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (e) {
+    if (e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
+    else console.error(e);
+  }
+}, 600));
+
+// =========================
+// 4) 렌더/계산
+// =========================
+function pct(completed, total){
+  const p = (!total || total<=0) ? 0 : (completed/total*100);
+  return Math.round(p*10)/10;
+}
+
+function renderDashboard(rows){
+  const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
+  const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
+  const progress = pct(doneAll,totalAll);
+  kpiProgressEl.textContent = progress.toFixed(1)+'%';
+  kpiParcelsEl.textContent  = `${doneAll} / ${totalAll} 필지`;
+
+  const remain = Math.max(0,totalAll-doneAll);
+  const data = { labels:['완료','잔여'], datasets:[{ data:[doneAll, remain] }] };
+  const opt  = { plugins:{ legend:{ labels:{ color:'#cfe0ff' } } }, cutout:'60%' };
+  const ctx  = document.getElementById('overallDonut');
+  if (donutChart) { donutChart.data = data; donutChart.update(); }
+  else { donutChart = new Chart(ctx, { type:'doughnut', data, options: opt }); }
+
+  const withPct = rows.map(r=>({...r, p: pct(Number(r.completed)||0, Number(r.total)||0)}))
+                      .filter(r=> (Number(r.total)||0) > 0)
+                      .sort((a,b)=>b.p - a.p);
+  const top = withPct.slice(0,3);
+  const bottom = withPct.slice(-3).reverse();
+  top3El.innerHTML    = top.map(r=>`<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
+  bottom3El.innerHTML = bottom.map(r=>`<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join('');
+}
+
+function renderProjects(rows){
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  rows.forEach(r=>{
+    const total = Number(r.total)||0;
+    const comp  = Number(r.completed)||0;
+    const last  = Number(r.completed_last_week)||0;
+    const pNow  = pct(comp,total);
+    const pPrev = pct(last,total);
+    const diff  = Math.round((pNow - pPrev)*10)/10;
+    const changed = Math.abs(diff) > 0.0001;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${esc(r.team||'')}</td>
+      <td>${esc(r.name||'')}</td>
+      <td><input type="number" class="in-total" data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
+      <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${inputEditable()} /></td>
+      <td>${pNow.toFixed(1)}%</td>
+      <td class="delta ${changed?'changed':''}">${changed ? (diff>0?'+':'')+diff.toFixed(1) : '—'}</td>
+      <td><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||'')}</textarea></td>
+      <td><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||'')}</textarea></td>
+    `;
+    tbody.appendChild(tr);
   });
 
-  document.getElementById('btnAddSample').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
-    const samples = [
-      {name:'제주-서부1지구', team:'A팀', total:140, completed:90},
-      {name:'제주-서부2지구', team:'A팀', total:110, completed:45},
-      {name:'제주-북부지구',  team:'B팀', total:95,  completed:80},
-      {name:'제주-중산간지구',team:'B팀', total:200, completed:60},
-      {name:'제주-서귀포지구',team:'C팀', total:150, completed:15},
-    ];
-    const batch = db.batch();
-    const col = db.collection('projects');
-    samples.forEach(s => {
-      const ref = col.doc();
-      batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:'', authorityFeedback:'', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  tbody.querySelectorAll('.in-total').forEach(el=>{
+    el.addEventListener('input', debounce(e=> saveField(e.target,'total', toNum(e.target.value)), 500));
+  });
+  tbody.querySelectorAll('.in-completed').forEach(el=>{
+    el.addEventListener('input', debounce(e=> saveField(e.target,'completed', toNum(e.target.value)), 500));
+  });
+  tbody.querySelectorAll('.in-lx').forEach(el=>{
+    el.addEventListener('input', debounce(e=> saveField(e.target,'lxNotes', e.target.value), 700));
+  });
+  tbody.querySelectorAll('.in-auth').forEach(el=>{
+    el.addEventListener('input', debounce(e=> saveField(e.target,'authorityFeedback', e.target.value), 700));
+  });
+}
+
+function inputEditable(){ return (auth && currentUser && isEditor) ? '' : 'disabled'; }
+function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
+function esc(s){ return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[c])); }
+
+async function saveField(el, field, value){
+  if (!(auth && currentUser && db)) return;
+  const id = el.getAttribute('data-id');
+  try{
+    await db.collection('projects').doc(id).update({
+      [field]: value,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    try{ await batch.commit(); alert('샘플 데이터 추가 완료'); }
-    catch(e){ alert(e.message); }
-  });
+  }catch(e){
+    if (e.code === 'permission-denied') alert('편집 권한이 없습니다. (관리자 승인 필요)');
+    else alert('저장 실패: ' + e.message);
+  }
+}
 
-  document.getElementById('btnExport').addEventListener('click', () => {
-    exportCSV(latestProjects);
+// =========================
+// 5) 버튼: 새 주 / 추가 / 샘플 / CSV / 권한요청
+// =========================
+document.getElementById('btnNewWeek')?.addEventListener('click', async () => {
+  if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
+  if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
+  const snap = await db.collection('projects').get();
+  const batch = db.batch();
+  snap.forEach(doc => {
+    const d = doc.data();
+    batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   });
+  try{ await batch.commit(); alert('새 주 시작 완료'); } catch(e){ alert(e.message); }
+});
 
-  document.getElementById('btnRequestEdit').addEventListener('click', async () => {
-    if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
-    const note = prompt('요청 사유를 입력해 주세요 (팀/업무 등)');
-    try{
-      await db.collection('edit_requests').doc(currentUser.uid).set({
-        uid: currentUser.uid, note: note||'', createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      alert('요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.');
-    }catch(e){ alert(e.message); }
-  });
-
-  function exportCSV(rows){
-    const headers = ['team','name','total','completed','completed_last_week','progress_now','progress_prev','delta_pp','lxNotes','authorityFeedback'];
-    const lines = [headers.join(',')];
-    rows.forEach(r => {
-      const total = Number(r.total)||0, comp=Number(r.completed)||0, last=Number(r.completed_last_week)||0;
-      const pNow=pct(comp,total), pPrev=pct(last,total), d=(pNow-pPrev).toFixed(1);
-      const vals = [r.team||'', r.name||'', total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||''), quote(r.authorityFeedback||'')];
-      lines.push(vals.join(','));
+document.getElementById('btnAddProject')?.addEventListener('click', async () => {
+  if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
+  const name = document.getElementById('inName').value.trim();
+  const team = document.getElementById('inTeam').value.trim();
+  const total = toNum(document.getElementById('inTotal').value);
+  const completed = toNum(document.getElementById('inCompleted').value);
+  if(!name || !team) return alert('사업지구명과 팀을 입력하세요.');
+  try{
+    await db.collection('projects').add({
+      name, team, total, completed, completed_last_week: completed,
+      lxNotes:'', authorityFeedback:'',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    const bom = new Uint8Array([0xEF,0xBB,0xBF]);
-    const blob = new Blob([bom, lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href=url; a.download='projects.csv'; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),0);
-  }
-  function quote(s){ const t = String(s).replaceAll('"','""'); return `"${t}"`; }
+    document.getElementById('inName').value='';
+    document.getElementById('inTeam').value='';
+    document.getElementById('inTotal').value='';
+    document.getElementById('inCompleted').value='';
+  } catch(e){ alert('추가 실패: ' + e.message); }
+});
 
-  // =========================
-  // 6) 관리자 패널 (승인/회수)
-  // =========================
-  const requestsBox = document.getElementById('requests');
-  const editorsBox  = document.getElementById('editors');
-  let unsubsAdmin = [];
+document.getElementById('btnAddSample')?.addEventListener('click', async () => {
+  if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
+  const samples = [
+    {name:'제주-서부1지구', team:'A팀', total:140, completed:90},
+    {name:'제주-서부2지구', team:'A팀', total:110, completed:45},
+    {name:'제주-북부지구',  team:'B팀', total:95,  completed:80},
+    {name:'제주-중산간지구',team:'B팀', total:200, completed:60},
+    {name:'제주-서귀포지구',team:'C팀', total:150, completed:15},
+  ];
+  const batch = db.batch();
+  const col = db.collection('projects');
+  samples.forEach(s => {
+    const ref = col.doc();
+    batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:'', authorityFeedback:'', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  });
+  try{ await batch.commit(); alert('샘플 데이터 추가 완료'); } catch(e){ alert(e.message); }
+});
 
-  function clearAdminStreams(){ unsubsAdmin.forEach(u=>u&&u()); unsubsAdmin=[]; }
+document.getElementById('btnExport')?.addEventListener('click', () => exportCSV(latestProjects));
 
-  function bindAdminStreams(){
-    clearAdminStreams();
-    if(!isAdmin) return;
+document.getElementById('btnRequestEdit')?.addEventListener('click', async () => {
+  if(!(auth && currentUser && db)) return alert('먼저 시작하세요.');
+  const note = prompt('요청 사유를 입력해 주세요 (팀/업무 등)');
+  try{
+    await db.collection('edit_requests').doc(currentUser.uid).set({
+      uid: currentUser.uid, note: note||'', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    alert('요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.');
+  } catch(e){ alert(e.message); }
+});
 
-    // 승인 대기
-    unsubsAdmin.push(
-      db.collection('edit_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
-        if(snap.empty){ requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
-        requestsBox.innerHTML = snap.docs.map(d=>{
-          const x=d.data();
-          return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                    <div>
-                      <div><b>UID:</b> ${d.id}</div>
-                      <div class="muted">${esc(x.note||'요청 사유 없음')}</div>
-                    </div>
-                    <div class="btn-row">
-                      <button class="btn accent" onclick="approveEditor('${d.id}')">승인</button>
-                      <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
-                    </div>
-                  </div>`;
-        }).join('');
-      })
-    );
+// CSV
+function exportCSV(rows){
+  const headers = ['team','name','total','completed','completed_last_week','progress_now','progress_prev','delta_pp','lxNotes','authorityFeedback'];
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    const total = Number(r.total)||0, comp=Number(r.completed)||0, last=Number(r.completed_last_week)||0;
+    const pNow=pct(comp,total), pPrev=pct(last,total), d=(pNow-pPrev).toFixed(1);
+    const vals = [r.team||'', r.name||'', total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||''), quote(r.authorityFeedback||'')];
+    lines.push(vals.join(','));
+  });
+  const bom = new Uint8Array([0xEF,0xBB,0xBF]);
+  const blob = new Blob([bom, lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='projects.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),0);
+}
+function quote(s){ const t = String(s).replaceAll('"','""'); return `"${t}"`; }
 
-    // 현재 에디터 목록
-    unsubsAdmin.push(
-      db.collection('roles').orderBy('role').onSnapshot(snap=>{
-        if(snap.empty){ editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
-        editorsBox.innerHTML = snap.docs.map(d=>{
-          const x=d.data();
-          const badge = (x.role==='admin')? 'admin' : 'editor';
-          return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                    <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${badge}</span></div>
-                    <div class="btn-row">
-                      ${x.role!=='admin' ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">회수</button>`:''}
-                    </div>
-                  </div>`;
-        }).join('');
-      })
-    );
-  }
+// =========================
+// 6) 관리자 패널 (옵션) — 필요시 그대로 사용
+// =========================
+const requestsBox = document.getElementById('requests');
+const editorsBox  = document.getElementById('editors');
+let unsubsAdmin = [];
+function clearAdminStreams(){ unsubsAdmin.forEach(u=>u&&u()); unsubsAdmin=[]; }
+function bindAdminStreams(){
+  clearAdminStreams();
+  if(!isAdmin) return;
+  unsubsAdmin.push(
+    db.collection('edit_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
+      if(!requestsBox) return;
+      if(snap.empty){ requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
+      requestsBox.innerHTML = snap.docs.map(d=>{
+        const x=d.data();
+        return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                  <div>
+                    <div><b>UID:</b> ${d.id}</div>
+                    <div class="muted">${esc(x.note||'요청 사유 없음')}</div>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn accent" onclick="approveEditor('${d.id}')">승인</button>
+                    <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
+                  </div>
+                </div>`;
+      }).join('');
+    })
+  );
+  unsubsAdmin.push(
+    db.collection('roles').orderBy('role').onSnapshot(snap=>{
+      if(!editorsBox) return;
+      if(snap.empty){ editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
+      editorsBox.innerHTML = snap.docs.map(d=>{
+        const x=d.data();
+        const badge = (x.role==='admin')? 'admin' : 'editor';
+        return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                  <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${badge}</span></div>
+                  <div class="btn-row">
+                    ${x.role!=='admin' ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">회수</button>`:''}
+                  </div>
+                </div>`;
+      }).join('');
+    })
+  );
+}
+window.approveEditor = async function(targetUid){
+  try{
+    await db.collection('roles').doc(targetUid).set({ role:'editor', grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+    await db.collection('edit_requests').doc(targetUid).delete();
+    alert('승인 완료');
+  }catch(e){ alert(e.message); }
+}
+window.rejectRequest = async function(targetUid){
+  try{ await db.collection('edit_requests').doc(targetUid).delete(); }
+  catch(e){ alert(e.message); }
+}
+window.revokeEditor = async function(targetUid){
+  if(!confirm('이 사용자의 편집 권한을 회수할까요?')) return;
+  try{ await db.collection('roles').doc(targetUid).delete(); alert('회수 완료'); }
+  catch(e){ alert(e.message); }
+}
 
-  // 전역에서 호출되도록 window에 바인딩
-  window.approveEditor = async function(targetUid){
-    try{
-      await db.collection('roles').doc(targetUid).set({ role:'editor', grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
-      await db.collection('edit_requests').doc(targetUid).delete();
-      alert('승인 완료');
-    }catch(e){ alert(e.message); }
-  }
-  window.rejectRequest = async function(targetUid){
-    try{ await db.collection('edit_requests').doc(targetUid).delete(); }
-    catch(e){ alert(e.message); }
-  }
-  window.revokeEditor = async function(targetUid){
-    if(!confirm('이 사용자의 편집 권한을 회수할까요?')) return;
-    try{ await db.collection('roles').doc(targetUid).delete(); alert('회수 완료'); }
-    catch(e){ alert(e.message); }
-  }
+// =========================
+// 7) 유틸
+// =========================
+function debounce(fn, wait){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; }
+</script>
 
-  // =========================
-  // 7) 유틸
-  // =========================
-  function debounce(fn, wait){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); }; }
-  </script>
 </body>
 </html>
