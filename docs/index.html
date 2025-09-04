@@ -205,12 +205,45 @@ try {
   document.getElementById("userInfo").textContent = "Firebase 미설정";
 }
 
-/* ========= 3) 인증 (아이디/비밀번호) ========= */
+/* ========= 3) 인증 (아이디/비밀번호) + 스트림 바인딩 ========= */
 const btnSignIn  = document.getElementById("btnSignIn");
 const btnSignOut = document.getElementById("btnSignOut");
 const userInfo   = document.getElementById("userInfo");
 const roleBadge  = document.getElementById("roleBadge");
 const adminPanel = document.getElementById("adminPanel");
+
+let unsubs = []; // 데이터 스트림 해제용
+function clearDataStreams(){ unsubs.forEach(u=>u&&u()); unsubs=[]; }
+
+function bindDataStreams(){
+  clearDataStreams();
+  if (!db || !currentUser) return;
+
+  // projects
+  unsubs.push(
+    db.collection("projects").orderBy("team").onSnapshot((snap) => {
+      latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      latestProjects.sort((a,b)=>
+        String(a.team||"").localeCompare(String(b.team||"")) ||
+        String(a.name||"").localeCompare(String(b.name||""))
+      );
+      renderProjects(latestProjects);
+      renderDashboard(latestProjects);
+    }, (err) => {
+      console.warn("projects listen error:", err.code || err.message);
+    })
+  );
+
+  // settings
+  unsubs.push(
+    db.collection("settings").doc("dashboard").onSnapshot(doc => {
+      const d = doc.data() || {};
+      if (checklistEl) checklistEl.value = d.checklist || "";
+    }, (err)=>{
+      console.warn("settings listen error:", err.code || err.message);
+    })
+  );
+}
 
 if (auth) {
   auth.onAuthStateChanged(async (user) => {
@@ -220,8 +253,10 @@ if (auth) {
       userInfo.textContent = `${idLike} 접속`;
       btnSignIn.classList.add("hidden");
       btnSignOut.classList.remove("hidden");
-      await refreshRole();        // role, isEditor, isAdmin 갱신
-      setControlsEnabled();       // 버튼/입력 가능 여부 갱신
+
+      await refreshRole();   // role, isEditor, isAdmin 갱신
+      setControlsEnabled();  // 버튼/입력 가능 여부 갱신
+      bindDataStreams();     // ★ 로그인/역할 확인 후 스트림 연결
     } else {
       userInfo.textContent = "로그인 필요";
       btnSignIn.classList.remove("hidden");
@@ -229,10 +264,11 @@ if (auth) {
       roleBadge.classList.add("hidden");
       role = null; isEditor = false; isAdmin = false;
       setControlsEnabled();
+      clearDataStreams();    // ★ 로그아웃 시 스트림 해제
+      latestProjects = []; renderProjects(latestProjects); renderDashboard(latestProjects);
     }
   });
 
-  // 간단 프롬프트 로그인 (필요하면 UI로 바꿔도 됨)
   btnSignIn.addEventListener("click", async () => {
     try {
       const username = prompt("아이디를 입력하세요 (예: ADMIN, LX01, NAMWON)");
@@ -268,21 +304,16 @@ async function refreshRole() {
 }
 
 function setControlsEnabled() {
-  // 관리자 전용 버튼
   setDisabled("btnNewWeek",   !(currentUser && isAdmin));
   setDisabled("btnAddProject",!(currentUser && isAdmin));
   setDisabled("btnAddSample", !(currentUser && isAdmin));
-
-  // 체크리스트는 관리자만
   const checklist = document.getElementById("checklist");
   if (checklist) checklist.disabled = !(currentUser && isAdmin);
-
-  // 표 입력 가능 여부는 inputEditable()에서 제어(에디터/관리자만 가능)
   renderProjects(latestProjects);
 }
 function setDisabled(id, yes){ const el = document.getElementById(id); if (el) el.disabled = !!yes; }
 
-/* ========= 4) 데이터 구독 ========= */
+/* ========= 4) 데이터 (스트림은 bindDataStreams에서 붙임) ========= */
 const tbody         = document.getElementById("tbody");
 const top3El        = document.getElementById("top3");
 const bottom3El     = document.getElementById("bottom3");
@@ -291,24 +322,6 @@ const kpiParcelsEl  = document.getElementById("kpiParcels");
 const checklistEl   = document.getElementById("checklist");
 
 let latestProjects = [];
-
-if (db) {
-  // 복합 인덱스가 없어도 동작하도록 team만 서버 정렬, name은 클라 정렬
-  db.collection("projects").orderBy("team").onSnapshot((snap) => {
-    latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    latestProjects.sort((a,b)=>
-      String(a.team||"").localeCompare(String(b.team||"")) ||
-      String(a.name||"").localeCompare(String(b.name||""))
-    );
-    renderProjects(latestProjects);
-    renderDashboard(latestProjects);
-  });
-
-  db.collection("settings").doc("dashboard").onSnapshot(doc => {
-    const d = doc.data() || {};
-    if (checklistEl) checklistEl.value = d.checklist || "";
-  });
-}
 
 // 관리자만 수정 가능(규칙 불일치 시 권한거부 에러)
 checklistEl && checklistEl.addEventListener("input", debounce(async ()=>{
