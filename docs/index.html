@@ -138,9 +138,9 @@
         <div>
           <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">설명</h3>
           <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-            <li>좌: 전체 공정률 도넛(높이 절반)</li>
-            <li>우: Top/Bottom3 + 확인사항(실시간)</li>
-            <li>표: 팀별 현황, Δ(pp), LX/소관청 메모</li>
+            <li>1팀 : 김용수, 김두리</li>
+            <li>2팀 : 이대연, 이승원</li>
+            <li>3팀 : 김국환, 노시준</li>
           </ul>
         </div>
       </div>
@@ -272,7 +272,7 @@ if (auth) {
 
   btnSignIn.addEventListener("click", async () => {
     try {
-      const username = prompt("아이디를 입력하세요 (예: ADMIN, LX01, NAMWON)");
+      const username = prompt("아이디를 입력하세요 (예: ADMIN, LX, NAMWON)");
       if (!username) return;
       const password = prompt("비밀번호를 입력하세요");
       if (!password) return;
