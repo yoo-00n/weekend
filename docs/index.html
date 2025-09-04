@@ -71,14 +71,14 @@
     <div class="wrap flex" style="padding:12px 20px">
       <div class="flex" style="gap:10px">
         <span class="tag">사업지구 공정률 대시보드</span>
-        <span class="muted">실시간 동기화 (Firebase · 익명 로그인)</span>
+        <span class="muted">실시간 동기화 (Firebase · 아이디 로그인)</span>
       </div>
       <div class="spacer"></div>
       <div class="flex">
-        <span id="userInfo" class="muted">접속 필요</span>
+        <span id="userInfo" class="muted">로그인 필요</span>
         <span id="roleBadge" class="badge hidden"></span>
-        <button id="btnSignIn" class="btn">익명으로 시작</button>
-        <button id="btnSignOut" class="btn hidden">종료</button>
+        <button id="btnSignIn" class="btn">로그인</button>
+        <button id="btnSignOut" class="btn hidden">로그아웃</button>
       </div>
     </div>
   </header>
@@ -104,8 +104,8 @@
         </div></div>
         <div class="card span-2"><div class="pad">
           <h2>확인사항</h2>
-          <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 리스크, 대민 안내 필요사항 등"></textarea>
-          <div class="footer">※ 에디터/관리자만 편집 가능 · 실시간 공유</div>
+          <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 리스크, 대민 안내 필요사항 등" disabled></textarea>
+          <div class="footer">※ 관리자만 편집 · 실시간 공유</div>
         </div></div>
       </div>
     </div>
@@ -113,8 +113,8 @@
     <div class="card" style="margin-top:16px"><div class="pad">
       <h2>관리 도구</h2>
       <div class="btn-row" style="margin-bottom:10px">
-        <button id="btnNewWeek" class="btn">새 주 시작(지난 주 이월)</button>
-        <button id="btnAddSample" class="btn accent">샘플 데이터 추가</button>
+        <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
+        <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
         <button id="btnExport" class="btn">CSV 내보내기</button>
         <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
       </div>
@@ -130,9 +130,9 @@
             <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
           </div>
           <div class="btn-row" style="margin-top:8px">
-            <button id="btnAddProject" class="btn">추가</button>
+            <button id="btnAddProject" class="btn" disabled>추가</button>
           </div>
-          <div class="footer">※ 편집 권한(roles)에 따라 입력 가능. Δ는 지난 주 대비 변화(pp).</div>
+          <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
         </div>
         <div>
           <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">설명</h3>
@@ -169,13 +169,13 @@
       <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
       <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
       <div id="requests"></div>
-      <h3 style="color:#cfe0ff;margin-top:12px">현재 에디터</h3>
+      <h3 style="color:#cfe0ff;margin-top:12px">현재 권한 사용자</h3>
       <div id="editors"></div>
     </div></div>
 
   </main>
 
-  <script>
+<script>
 /* ========= 1) Firebase 설정 ========= */
 const firebaseConfig = {
   apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
@@ -186,24 +186,26 @@ const firebaseConfig = {
   appId: "1:399772383646:web:21208b83404479669c3e8f",
   measurementId: "G-35FK2FRMBZ"
 };
+const USER_DOMAIN = "acct.lx.local"; // A안: 아이디 → 가짜 이메일 도메인
 
 /* ========= 2) 초기화 ========= */
 let app, db, auth;
 let donutChart = null;
 let currentUser = null;
-let isEditor = false;
-let isAdmin = false;
+let role = null;         // "admin" | "lx" | "namwon" | null
+let isEditor = false;    // (role === "admin" || role === "lx")
+let isAdmin  = false;
 
 try {
-  app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-  db  = firebase.firestore();
+  app  = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+  db   = firebase.firestore();
   auth = firebase.auth();
 } catch (err) {
   console.error("[Firebase 초기화 실패]", err);
-  document.getElementById("userInfo").textContent = "Firebase 미설정 (보기 전용)";
+  document.getElementById("userInfo").textContent = "Firebase 미설정";
 }
 
-/* ========= 3) 인증(익명) ========= */
+/* ========= 3) 인증 (아이디/비밀번호) ========= */
 const btnSignIn  = document.getElementById("btnSignIn");
 const btnSignOut = document.getElementById("btnSignOut");
 const userInfo   = document.getElementById("userInfo");
@@ -214,55 +216,71 @@ if (auth) {
   auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
-      userInfo.textContent = `손님(${user.uid.slice(0,6)}) 접속`;
+      const idLike = user.email ? user.email.split("@")[0] : user.uid.slice(0,6);
+      userInfo.textContent = `${idLike} 접속`;
       btnSignIn.classList.add("hidden");
       btnSignOut.classList.remove("hidden");
-      await refreshRole();
-      setControlsEnabled(true);
+      await refreshRole();        // role, isEditor, isAdmin 갱신
+      setControlsEnabled();       // 버튼/입력 가능 여부 갱신
     } else {
-      userInfo.textContent = "접속 필요";
+      userInfo.textContent = "로그인 필요";
       btnSignIn.classList.remove("hidden");
       btnSignOut.classList.add("hidden");
       roleBadge.classList.add("hidden");
-      isEditor = false; isAdmin = false;
-      setControlsEnabled(false);
+      role = null; isEditor = false; isAdmin = false;
+      setControlsEnabled();
     }
   });
 
+  // 간단 프롬프트 로그인 (필요하면 UI로 바꿔도 됨)
   btnSignIn.addEventListener("click", async () => {
-    try { await auth.signInAnonymously(); }
-    catch (e) { alert(`[로그인 실패] ${e.code||""} ${e.message||e}`); }
+    try {
+      const username = prompt("아이디를 입력하세요 (예: ADMIN, LX01, NAMWON)");
+      if (!username) return;
+      const password = prompt("비밀번호를 입력하세요");
+      if (!password) return;
+      const email = `${username.trim()}@${USER_DOMAIN}`;
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      alert(`[로그인 실패] ${e.code || ""} ${e.message || e}`);
+    }
   });
   btnSignOut.addEventListener("click", async () => { await auth.signOut(); });
 }
 
 async function refreshRole() {
+  role = null; isEditor = false; isAdmin = false;
   if (!(db && currentUser)) return;
   const r = await db.collection("roles").doc(currentUser.uid).get();
   if (r.exists) {
-    const role = (r.data().role || "editor").toLowerCase();
-    isEditor = true; isAdmin = role === "admin";
-    roleBadge.textContent = role;
+    role = String(r.data().role || "").toLowerCase();
+    isAdmin  = role === "admin";
+    isEditor = role === "admin" || role === "lx";
+    roleBadge.textContent = role || "unknown";
     roleBadge.classList.remove("hidden");
     if (isAdmin) { adminPanel && adminPanel.classList.remove("hidden"); bindAdminStreams(); }
-    else         { adminPanel && adminPanel.classList.add("hidden"); }
+    else         { adminPanel && adminPanel.classList.add("hidden");    clearAdminStreams(); }
   } else {
-    isEditor = false; isAdmin = false;
-    roleBadge.textContent = "view";
+    roleBadge.textContent = "no-role";
     roleBadge.classList.remove("hidden");
     adminPanel && adminPanel.classList.add("hidden");
   }
 }
 
-function setControlsEnabled(enabled) {
-  ["btnNewWeek","btnAddProject","btnAddSample"].forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) el.disabled = !enabled;
-  });
+function setControlsEnabled() {
+  // 관리자 전용 버튼
+  setDisabled("btnNewWeek",   !(currentUser && isAdmin));
+  setDisabled("btnAddProject",!(currentUser && isAdmin));
+  setDisabled("btnAddSample", !(currentUser && isAdmin));
+
+  // 체크리스트는 관리자만
   const checklist = document.getElementById("checklist");
-  if (checklist) checklist.disabled = !(enabled && isEditor);
+  if (checklist) checklist.disabled = !(currentUser && isAdmin);
+
+  // 표 입력 가능 여부는 inputEditable()에서 제어(에디터/관리자만 가능)
   renderProjects(latestProjects);
 }
+function setDisabled(id, yes){ const el = document.getElementById(id); if (el) el.disabled = !!yes; }
 
 /* ========= 4) 데이터 구독 ========= */
 const tbody         = document.getElementById("tbody");
@@ -275,7 +293,7 @@ const checklistEl   = document.getElementById("checklist");
 let latestProjects = [];
 
 if (db) {
-  // 복합 인덱스가 없어도 동작하도록 team만 서버 정렬, name은 클라이언트 정렬
+  // 복합 인덱스가 없어도 동작하도록 team만 서버 정렬, name은 클라 정렬
   db.collection("projects").orderBy("team").onSnapshot((snap) => {
     latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     latestProjects.sort((a,b)=>
@@ -292,6 +310,7 @@ if (db) {
   });
 }
 
+// 관리자만 수정 가능(규칙 불일치 시 권한거부 에러)
 checklistEl && checklistEl.addEventListener("input", debounce(async ()=>{
   if (!(auth && currentUser && db)) return;
   try {
@@ -300,7 +319,7 @@ checklistEl && checklistEl.addEventListener("input", debounce(async ()=>{
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } catch (e) {
-    if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인 필요)");
+    if (e.code === "permission-denied") alert("관리자 권한이 필요합니다.");
     else console.error(e);
   }
 }, 600));
@@ -350,8 +369,8 @@ function renderProjects(rows){
     tr.innerHTML = `
       <td>${esc(r.team||"")}</td>
       <td>${esc(r.name||"")}</td>
-      <td><input type="number" class="in-total" data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
-      <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${inputEditable()} /></td>
+      <td><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
+      <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
       <td>${pNow.toFixed(1)}%</td>
       <td class="delta ${changed?"changed":""}">${changed ? (diff>0?"+":"")+diff.toFixed(1) : "—"}</td>
       <td><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||"")}</textarea></td>
@@ -374,7 +393,7 @@ function renderProjects(rows){
   });
 }
 
-function inputEditable(){ return (auth && currentUser && isEditor) ? "" : "disabled"; }
+function inputEditable(){ return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
 function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
 function esc(s){
   return String(s).replace(/[&<>\"']/g, function(c){
@@ -390,33 +409,35 @@ function esc(s){
 
 async function saveField(el, field, value){
   if (!(auth && currentUser && db)) return;
-  const id = el.getAttribute("data-id");
   try{
+    const id = el.getAttribute("data-id");
     await db.collection("projects").doc(id).update({
       [field]: value,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   }catch(e){
-    if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인 필요)");
+    if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
     else alert("저장 실패: " + e.message);
   }
 }
 
 /* ========= 6) 버튼들 ========= */
 document.getElementById("btnNewWeek") && document.getElementById("btnNewWeek").addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("먼저 시작하세요.");
+  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
-  const snap = await db.collection("projects").get();
-  const batch = db.batch();
-  snap.forEach(doc => {
-    const d = doc.data();
-    batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-  });
-  try{ await batch.commit(); alert("새 주 시작 완료"); } catch(e){ alert(e.message); }
+  try{
+    const snap = await db.collection("projects").get();
+    const batch = db.batch();
+    snap.forEach(doc => {
+      const d = doc.data();
+      batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+    await batch.commit(); alert("새 주 시작 완료");
+  } catch(e){ alert(e.message); }
 });
 
 document.getElementById("btnAddProject") && document.getElementById("btnAddProject").addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("먼저 시작하세요.");
+  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const name = document.getElementById("inName").value.trim();
   const team = document.getElementById("inTeam").value.trim();
   const total = toNum(document.getElementById("inTotal").value);
@@ -436,7 +457,7 @@ document.getElementById("btnAddProject") && document.getElementById("btnAddProje
 });
 
 document.getElementById("btnAddSample") && document.getElementById("btnAddSample").addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("먼저 시작하세요.");
+  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const samples = [
     {name:"제주-서부1지구", team:"A팀", total:140, completed:90},
     {name:"제주-서부2지구", team:"A팀", total:110, completed:45},
@@ -444,18 +465,20 @@ document.getElementById("btnAddSample") && document.getElementById("btnAddSample
     {name:"제주-중산간지구",team:"B팀", total:200, completed:60},
     {name:"제주-서귀포지구",team:"C팀", total:150, completed:15}
   ];
-  const batch = db.batch();
-  const col = db.collection("projects");
-  samples.forEach(s => {
-    const ref = col.doc();
-    batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:"", authorityFeedback:"", updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-  });
-  try{ await batch.commit(); alert("샘플 데이터 추가 완료"); } catch(e){ alert(e.message); }
+  try{
+    const batch = db.batch();
+    const col = db.collection("projects");
+    samples.forEach(s => {
+      const ref = col.doc();
+      batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:"", authorityFeedback:"", updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+    await batch.commit(); alert("샘플 데이터 추가 완료");
+  } catch(e){ alert(e.message); }
 });
 
 document.getElementById("btnExport") && document.getElementById("btnExport").addEventListener("click", () => exportCSV(latestProjects));
 document.getElementById("btnRequestEdit") && document.getElementById("btnRequestEdit").addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("먼저 시작하세요.");
+  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const note = prompt("요청 사유를 입력해 주세요 (팀/업무 등)");
   try{
     await db.collection("edit_requests").doc(currentUser.uid).set({
@@ -485,7 +508,7 @@ function exportCSV(rows){
 }
 function quote(s){ const t = String(s).replaceAll('"','""'); return `"${t}"`; }
 
-/* ========= 8) 관리자 패널(선택) ========= */
+/* ========= 8) 관리자 패널 ========= */
 const requestsBox = document.getElementById("requests");
 const editorsBox  = document.getElementById("editors");
 let unsubsAdmin = [];
@@ -505,7 +528,7 @@ function bindAdminStreams(){
                     <div class="muted">${esc(x.note||"요청 사유 없음")}</div>
                   </div>
                   <div class="btn-row">
-                    <button class="btn accent" onclick="approveEditor('${d.id}')">승인</button>
+                    <button class="btn accent" onclick="approveEditor('${d.id}')">승인(LX)</button>
                     <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
                   </div>
                 </div>`;
@@ -518,11 +541,10 @@ function bindAdminStreams(){
       if(snap.empty){ editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
       editorsBox.innerHTML = snap.docs.map(d=>{
         const x=d.data();
-        const badge = (x.role==="admin")? "admin" : "editor";
         return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                  <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${badge}</span></div>
+                  <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${esc(x.role)}</span></div>
                   <div class="btn-row">
-                    ${x.role!=="admin" ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">회수</button>` : ""}
+                    ${x.role!=="admin" ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">권한 회수</button>` : ""}
                   </div>
                 </div>`;
       }).join("");
@@ -531,9 +553,9 @@ function bindAdminStreams(){
 }
 window.approveEditor = async function(targetUid){
   try{
-    await db.collection("roles").doc(targetUid).set({ role:"editor", grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+    await db.collection("roles").doc(targetUid).set({ role:"lx", grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
     await db.collection("edit_requests").doc(targetUid).delete();
-    alert("승인 완료");
+    alert("승인 완료 (LX 권한)");
   }catch(e){ alert(e.message); }
 };
 window.rejectRequest = async function(targetUid){
@@ -541,8 +563,8 @@ window.rejectRequest = async function(targetUid){
   catch(e){ alert(e.message); }
 };
 window.revokeEditor = async function(targetUid){
-  if(!confirm("이 사용자의 편집 권한을 회수할까요?")) return;
-  try{ await db.collection("roles").doc(targetUid).delete(); alert("회수 완료"); }
+  if(!confirm("이 사용자의 권한을 회수할까요? (보기만 가능)")) return;
+  try{ await db.collection("roles").doc(targetUid).set({ role:"namwon" }, {merge:true}); alert("회수 완료"); }
   catch(e){ alert(e.message); }
 };
 
