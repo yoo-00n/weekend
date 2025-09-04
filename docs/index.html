@@ -38,9 +38,10 @@
     .accent{background:#0d2b24;border-color:#0a4034}
     .accent:hover{background:#123c32}
 
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+    /* ===== 테이블 & 열 너비 조정 ===== */
+    table{width:100%;border-collapse:separate;border-spacing:0 10px; table-layout:fixed;}
     thead th{font-size:12px;text-transform:uppercase;color:#a9b8d9;text-align:left;padding:0 8px}
-    tbody td{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-left:0;border-right:0;padding:12px 8px}
+    tbody td{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-left:0;border-right:0;padding:12px 8px;vertical-align:middle}
     tbody tr{border-radius:12px;overflow:hidden}
     tbody td:first-child{border-left:1px solid #1b2446;border-top-left-radius:12px;border-bottom-left-radius:12px}
     tbody td:last-child{border-right:1px solid #1b2446;border-top-right-radius:12px;border-bottom-right-radius:12px}
@@ -48,7 +49,7 @@
     input[type="number"], input[type="text"], textarea, select{
       width:100%;background:#0a1330;border:1px solid #1f2c57;color:#e8eefb;border-radius:10px;padding:8px;outline:none
     }
-    input:focus, textarea:focus{box-shadow:0 0 0 3px var(--ring)}
+    input:focus, textarea:focus, select:focus{box-shadow:0 0 0 3px var(--ring)}
     textarea{min-height:64px;resize:vertical}
 
     .delta{font-weight:700}
@@ -65,6 +66,24 @@
     .dash-right{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,auto);gap:16px}
     .span-2{grid-column:1 / span 2}
     .badge{border:1px solid #2d3d72;background:#0e1b40;padding:4px 8px;border-radius:999px;font-size:12px;color:#cfe0ff}
+
+    /* 열 별 폭 (요청사항 반영) */
+    th.col-team,      td.col-team      { width: 10%; min-width: 90px; white-space:nowrap; }
+    th.col-name,      td.col-name      { width: 18%; min-width: 140px; }
+    th.col-total,     td.col-total     { width: 4%;  min-width: 80px; white-space:nowrap; }   /* 1/3로 축소 */
+    th.col-done,      td.col-done      { width: 4%;  min-width: 80px; white-space:nowrap; }   /* 1/3로 축소 */
+    th.col-progress,  td.col-progress  { width: 12%; min-width: 120px; }
+    th.col-delta,     td.col-delta     { width: 6%;  min-width: 70px; white-space:nowrap; text-align:right }
+    th.col-handover,  td.col-handover  { width: 24%; min-width: 260px; }                       /* 늘림 */
+    th.col-feedback,  td.col-feedback  { width: 22%; min-width: 220px; }
+
+    /* 공정률 바 게이지 */
+    .barwrap{position:relative;height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--brand,#5aa0ff),var(--accent,#46e0b7))}
+    .barlabel{position:absolute;top:-20px;right:0;font-size:12px;color:var(--muted)}
+
+    /* 도넛 차트 높이 90px */
+    #overallDonut{height:90px !important; max-height:90px !important;}
   </style>
 </head>
 <body>
@@ -88,7 +107,7 @@
       <div class="card"><div class="pad">
         <h2>전체 공정률</h2>
         <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
-        <canvas id="overallDonut" style="margin-top:6px;height:120px"></canvas>
+        <canvas id="overallDonut" style="margin-top:6px"></canvas>
       </div></div>
 
       <div class="dash-right">
@@ -117,7 +136,6 @@
         <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
         <button id="btnExport" class="btn">CSV 내보내기</button>
         <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
-        <!-- 관리자 전용 일괄 삭제 -->
         <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
       </div>
       <div class="row cols-2">
@@ -137,7 +155,7 @@
           <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
         </div>
         <div>
-          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">설명</h3>
+          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
           <ul class="muted" style="margin:0 0 6px 16px;padding:0">
             <li>1팀 : 김용수, 김두리</li>
             <li>2팀 : 이대연, 이승원</li>
@@ -152,14 +170,19 @@
       <table>
         <thead>
           <tr>
-            <th>담당팀</th>
-            <th>사업지구</th>
-            <th>총 필지</th>
-            <th>완료 (이번 주)</th>
-            <th>공정률 (%)</th>
-            <th>Δ 주간 (pp)</th>
-            <th>LX 인수인계</th>
-            <th>소관청 피드백</th>
+            <th class="col-team">
+              담당팀
+              <select id="teamFilter" style="margin-left:.5rem;max-width:120px">
+                <option value="__ALL__">전체</option>
+              </select>
+            </th>
+            <th class="col-name">사업지구</th>
+            <th class="col-total">총 필지</th>
+            <th class="col-done">완료 (이번 주)</th>
+            <th class="col-progress">공정률 (%)</th>
+            <th class="col-delta">Δ 주간 (pp)</th>
+            <th class="col-handover">LX 인수인계</th>
+            <th class="col-feedback">소관청 피드백</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -188,7 +211,7 @@ const firebaseConfig = {
   appId: "1:399772383646:web:21208b83404479669c3e8f",
   measurementId: "G-35FK2FRMBZ"
 };
-const USER_DOMAIN = "acct.lx.local"; // 아이디 → 가짜 이메일 도메인
+const USER_DOMAIN = "acct.lx.local";
 
 /* ========= 2) 초기화 ========= */
 let app, db, auth;
@@ -207,7 +230,7 @@ try {
   document.getElementById("userInfo").textContent = "Firebase 미설정";
 }
 
-/* ========= 3) 인증 (아이디/비밀번호) + 스트림 바인딩 ========= */
+/* ========= 3) 인증 ========= */
 const btnSignIn  = document.getElementById("btnSignIn");
 const btnSignOut = document.getElementById("btnSignOut");
 const userInfo   = document.getElementById("userInfo");
@@ -215,7 +238,7 @@ const roleBadge  = document.getElementById("roleBadge");
 const adminPanel = document.getElementById("adminPanel");
 const btnDeleteAll = document.getElementById("btnDeleteAll");
 
-let unsubs = []; // 데이터 스트림 해제용
+let unsubs = [];
 function clearDataStreams(){ unsubs.forEach(u=>u&&u()); unsubs=[]; }
 
 function bindDataStreams(){
@@ -232,6 +255,8 @@ function bindDataStreams(){
       );
       renderProjects(latestProjects);
       renderDashboard(latestProjects);
+      buildTeamFilter(latestProjects);    // ★ 팀 필터 옵션 구성/유지
+      applyTeamFilter();                  // ★ 선택값에 따라 행 표시
     }, (err) => {
       console.warn("projects listen error:", err.code || err.message);
     })
@@ -242,9 +267,7 @@ function bindDataStreams(){
     db.collection("settings").doc("dashboard").onSnapshot(doc => {
       const d = doc.data() || {};
       if (checklistEl) checklistEl.value = d.checklist || "";
-    }, (err)=>{
-      console.warn("settings listen error:", err.code || err.message);
-    })
+    }, (err)=>{ console.warn("settings listen error:", err.code || err.message); })
   );
 }
 
@@ -257,9 +280,9 @@ if (auth) {
       btnSignIn.classList.add("hidden");
       btnSignOut.classList.remove("hidden");
 
-      await refreshRole();   // role, isEditor, isAdmin 갱신
-      setControlsEnabled();  // 버튼/입력 가능 여부 갱신
-      bindDataStreams();     // ★ 로그인/역할 확인 후 스트림 연결
+      await refreshRole();
+      setControlsEnabled();
+      bindDataStreams();
     } else {
       userInfo.textContent = "로그인 필요";
       btnSignIn.classList.remove("hidden");
@@ -267,7 +290,7 @@ if (auth) {
       roleBadge.classList.add("hidden");
       role = null; isEditor = false; isAdmin = false;
       setControlsEnabled();
-      clearDataStreams();    // ★ 로그아웃 시 스트림 해제
+      clearDataStreams();
       latestProjects = []; renderProjects(latestProjects); renderDashboard(latestProjects);
     }
   });
@@ -331,44 +354,35 @@ const bottom3El     = document.getElementById("bottom3");
 const kpiProgressEl = document.getElementById("kpiProgress");
 const kpiParcelsEl  = document.getElementById("kpiParcels");
 const checklistEl   = document.getElementById("checklist");
+const teamFilterEl  = document.getElementById("teamFilter");
 
 let latestProjects = [];
 
-// 관리자만 수정 가능(규칙 불일치 시 권한거부 에러)
-checklistEl && checklistEl.addEventListener("input", debounce(async ()=>{
-  if (!(auth && currentUser && db)) return;
-  try {
-    await db.collection("settings").doc("dashboard").set({
-      checklist: checklistEl.value,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-  } catch (e) {
-    if (e.code === "permission-denied") alert("관리자 권한이 필요합니다.");
-    else console.error(e);
-  }
-}, 600));
-
 /* ========= 5) 렌더/계산 ========= */
-function pct(completed, total){
+function pct1(completed, total){
   const p = (!total || total<=0) ? 0 : (completed/total*100);
   return Math.round(p*10)/10;
+}
+function pctInt(completed, total){   // 정수 표시용
+  const p = (!total || total<=0) ? 0 : (completed/total*100);
+  return Math.round(p);
 }
 
 function renderDashboard(rows){
   const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
   const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
-  const progress = pct(doneAll,totalAll);
+  const progress = pct1(doneAll,totalAll);
   kpiProgressEl.textContent = progress.toFixed(1) + "%";
   kpiParcelsEl.textContent  = `${doneAll} / ${totalAll} 필지`;
 
   const remain = Math.max(0,totalAll-doneAll);
   const data = { labels:["완료","잔여"], datasets:[{ data:[doneAll, remain] }] };
-  const opt  = { plugins:{ legend:{ labels:{ color:"#cfe0ff" } } }, cutout:"60%" };
+  const opt  = { plugins:{ legend:{ labels:{ color:"#cfe0ff" } } }, cutout:"60%", maintainAspectRatio:false, layout:{padding:0} };
   const ctx  = document.getElementById("overallDonut");
   if (donutChart) { donutChart.data = data; donutChart.update(); }
   else { donutChart = new Chart(ctx, { type:"doughnut", data, options: opt }); }
 
-  const withPct = rows.map(r=>({...r, p: pct(Number(r.completed)||0, Number(r.total)||0)}))
+  const withPct = rows.map(r=>({...r, p: pct1(Number(r.completed)||0, Number(r.total)||0)}))
                       .filter(r=> (Number(r.total)||0) > 0)
                       .sort((a,b)=>b.p - a.p);
   const top = withPct.slice(0,3);
@@ -384,24 +398,31 @@ function renderProjects(rows){
     const total = Number(r.total)||0;
     const comp  = Number(r.completed)||0;
     const last  = Number(r.completed_last_week)||0;
-    const pNow  = pct(comp,total);
-    const pPrev = pct(last,total);
-    const diff  = Math.round((pNow - pPrev)*10)/10;
+    const pNow1 = pct1(comp,total);       // 1자리 소수 (Δ 계산/다운로드용)
+    const pPrev = pct1(last,total);
+    const diff  = Math.round((pNow1 - pPrev)*10)/10;
     const changed = Math.abs(diff) > 0.0001;
+    const pInt = pctInt(comp,total);      // ★ 정수 표시 + 게이지
 
     const tr = document.createElement("tr");
+    tr.dataset.team = r.team || "";
     tr.innerHTML = `
-      <td>${esc(r.team||"")}</td>
-      <td>
+      <td class="col-team">${esc(r.team||"")}</td>
+      <td class="col-name">
         ${esc(r.name||"")}
         ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
       </td>
-      <td><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
-      <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
-      <td>${pNow.toFixed(1)}%</td>
-      <td class="delta ${changed?"changed":""}">${changed ? (diff>0?"+":"")+diff.toFixed(1) : "—"}</td>
-      <td><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||"")}</textarea></td>
-      <td><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||"")}</textarea></td>
+      <td class="col-total"><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
+      <td class="col-done"><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
+      <td class="col-progress">
+        <div class="barwrap">
+          <div class="bar" style="width:${Math.max(0,Math.min(100,pInt))}%"></div>
+          <span class="barlabel">${pInt}%</span>
+        </div>
+      </td>
+      <td class="col-delta delta ${changed?"changed":""}">${changed ? (diff>0?"+":"")+diff.toFixed(1) : "—"}</td>
+      <td class="col-handover"><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||"")}</textarea></td>
+      <td class="col-feedback"><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||"")}</textarea></td>
     `;
     tbody.appendChild(tr);
   });
@@ -409,9 +430,11 @@ function renderProjects(rows){
   // 입력 바인딩
   tbody.querySelectorAll(".in-total").forEach(el=>{
     el.addEventListener("input", debounce(e=> saveField(e.target,"total", toNum(e.target.value)), 500));
+    el.addEventListener("input", debounce(()=>{ refreshBarsForRow(el.closest("tr")); }, 520));
   });
   tbody.querySelectorAll(".in-completed").forEach(el=>{
     el.addEventListener("input", debounce(e=> saveField(e.target,"completed", toNum(e.target.value)), 500));
+    el.addEventListener("input", debounce(()=>{ refreshBarsForRow(el.closest("tr")); }, 520));
   });
   tbody.querySelectorAll(".in-lx").forEach(el=>{
     el.addEventListener("input", debounce(e=> saveField(e.target,"lxNotes", e.target.value), 700));
@@ -429,7 +452,6 @@ function renderProjects(rows){
         if (!confirm("이 사업지구를 삭제할까요?")) return;
         try{
           await db.collection("projects").doc(id).delete();
-          // 실시간 스트림으로 자동 갱신됨
         }catch(err){
           alert("삭제 실패: " + (err.message || err));
         }
@@ -438,13 +460,20 @@ function renderProjects(rows){
   }
 }
 
+function refreshBarsForRow(tr){
+  if(!tr) return;
+  const total = toNum(tr.querySelector(".in-total")?.value);
+  const comp  = toNum(tr.querySelector(".in-completed")?.value);
+  const p = pctInt(comp,total);
+  const bar = tr.querySelector(".bar");
+  const label = tr.querySelector(".barlabel");
+  if(bar) bar.style.width = Math.max(0,Math.min(100,p)) + "%";
+  if(label) label.textContent = p + "%";
+}
+
 function inputEditable(){ return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
 function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
-function esc(s){
-  return String(s).replace(/[&<>\"']/g, function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
-  });
-}
+function esc(s){ return String(s).replace(/[&<>\"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
 
 async function saveField(el, field, value){
   if (!(auth && currentUser && db)) return;
@@ -548,7 +577,7 @@ function exportCSV(rows){
   const lines = [headers.join(",")];
   rows.forEach(r => {
     const total = Number(r.total)||0, comp=Number(r.completed)||0, last=Number(r.completed_last_week)||0;
-    const pNow=pct(comp,total), pPrev=pct(last,total), d=(pNow-pPrev).toFixed(1);
+    const pNow=pct1(comp,total), pPrev=pct1(last,total), d=(pNow-pPrev).toFixed(1);
     const vals = [r.team||"", r.name||"", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||""), quote(r.authorityFeedback||"")];
     lines.push(vals.join(","));
   });
@@ -622,7 +651,33 @@ window.revokeEditor = async function(targetUid){
   catch(e){ alert(e.message); }
 };
 
-/* ========= 9) 유틸 ========= */
+/* ========= 9) 팀 필터 ========= */
+let lastTeamOptionSig = "";
+function buildTeamFilter(rows){
+  if(!teamFilterEl) return;
+  const teams = Array.from(new Set(rows.map(r => (r.team||"").trim()).filter(Boolean))).sort();
+  const sig = teams.join("|");
+  if(sig === lastTeamOptionSig) return; // 옵션 변동 없으면 건너뜀
+
+  const current = teamFilterEl.value || "__ALL__";
+  teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` + 
+    teams.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  lastTeamOptionSig = sig;
+  // 기존 선택 유지
+  const keep = [...teamFilterEl.options].some(o=>o.value===current);
+  teamFilterEl.value = keep ? current : "__ALL__";
+}
+function applyTeamFilter(){
+  if(!teamFilterEl) return;
+  const v = teamFilterEl.value;
+  document.querySelectorAll("#tbody tr").forEach(tr=>{
+    const t = (tr.dataset.team||"").trim();
+    tr.style.display = (v==="__ALL__" || t===v) ? "" : "none";
+  });
+}
+teamFilterEl?.addEventListener("change", applyTeamFilter);
+
+/* ========= 10) 유틸 ========= */
 function debounce(fn, wait){ let t; return function(){ clearTimeout(t); const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); }; }
 </script>
 
