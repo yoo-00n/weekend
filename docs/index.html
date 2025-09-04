@@ -105,7 +105,7 @@
         <div class="card span-2"><div class="pad">
           <h2>NOTICE</h2>
           <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
-          <div class="footer">※ 관리자만 사업지구 추가 가능</div>
+          <div class="footer">※ 관리자만 사업지구 추가/삭제 가능</div>
         </div></div>
       </div>
     </div>
@@ -117,6 +117,8 @@
         <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
         <button id="btnExport" class="btn">CSV 내보내기</button>
         <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
+        <!-- 관리자 전용 일괄 삭제 -->
+        <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
       </div>
       <div class="row cols-2">
         <div>
@@ -186,7 +188,7 @@ const firebaseConfig = {
   appId: "1:399772383646:web:21208b83404479669c3e8f",
   measurementId: "G-35FK2FRMBZ"
 };
-const USER_DOMAIN = "acct.lx.local"; // A안: 아이디 → 가짜 이메일 도메인
+const USER_DOMAIN = "acct.lx.local"; // 아이디 → 가짜 이메일 도메인
 
 /* ========= 2) 초기화 ========= */
 let app, db, auth;
@@ -211,6 +213,7 @@ const btnSignOut = document.getElementById("btnSignOut");
 const userInfo   = document.getElementById("userInfo");
 const roleBadge  = document.getElementById("roleBadge");
 const adminPanel = document.getElementById("adminPanel");
+const btnDeleteAll = document.getElementById("btnDeleteAll");
 
 let unsubs = []; // 데이터 스트림 해제용
 function clearDataStreams(){ unsubs.forEach(u=>u&&u()); unsubs=[]; }
@@ -294,12 +297,20 @@ async function refreshRole() {
     isEditor = role === "admin" || role === "lx";
     roleBadge.textContent = role || "unknown";
     roleBadge.classList.remove("hidden");
-    if (isAdmin) { adminPanel && adminPanel.classList.remove("hidden"); bindAdminStreams(); }
-    else         { adminPanel && adminPanel.classList.add("hidden");    clearAdminStreams(); }
+    if (isAdmin) { 
+      adminPanel && adminPanel.classList.remove("hidden"); 
+      btnDeleteAll && btnDeleteAll.classList.remove("hidden");
+      bindAdminStreams(); 
+    } else { 
+      adminPanel && adminPanel.classList.add("hidden");    
+      btnDeleteAll && btnDeleteAll.classList.add("hidden");
+      clearAdminStreams(); 
+    }
   } else {
     roleBadge.textContent = "no-role";
     roleBadge.classList.remove("hidden");
     adminPanel && adminPanel.classList.add("hidden");
+    btnDeleteAll && btnDeleteAll.classList.add("hidden");
   }
 }
 
@@ -313,7 +324,7 @@ function setControlsEnabled() {
 }
 function setDisabled(id, yes){ const el = document.getElementById(id); if (el) el.disabled = !!yes; }
 
-/* ========= 4) 데이터 (스트림은 bindDataStreams에서 붙임) ========= */
+/* ========= 4) 데이터 ========= */
 const tbody         = document.getElementById("tbody");
 const top3El        = document.getElementById("top3");
 const bottom3El     = document.getElementById("bottom3");
@@ -381,7 +392,10 @@ function renderProjects(rows){
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${esc(r.team||"")}</td>
-      <td>${esc(r.name||"")}</td>
+      <td>
+        ${esc(r.name||"")}
+        ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
+      </td>
       <td><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
       <td><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
       <td>${pNow.toFixed(1)}%</td>
@@ -392,6 +406,7 @@ function renderProjects(rows){
     tbody.appendChild(tr);
   });
 
+  // 입력 바인딩
   tbody.querySelectorAll(".in-total").forEach(el=>{
     el.addEventListener("input", debounce(e=> saveField(e.target,"total", toNum(e.target.value)), 500));
   });
@@ -404,19 +419,30 @@ function renderProjects(rows){
   tbody.querySelectorAll(".in-auth").forEach(el=>{
     el.addEventListener("input", debounce(e=> saveField(e.target,"authorityFeedback", e.target.value), 700));
   });
+
+  // 관리자: 삭제 버튼 바인딩
+  if (isAdmin) {
+    tbody.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", async (e)=>{
+        const id  = e.currentTarget.getAttribute("data-del");
+        if (!id) return;
+        if (!confirm("이 사업지구를 삭제할까요?")) return;
+        try{
+          await db.collection("projects").doc(id).delete();
+          // 실시간 스트림으로 자동 갱신됨
+        }catch(err){
+          alert("삭제 실패: " + (err.message || err));
+        }
+      });
+    });
+  }
 }
 
 function inputEditable(){ return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
 function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
 function esc(s){
   return String(s).replace(/[&<>\"']/g, function(c){
-    return {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      "\"": "&quot;",
-      "'": "&#39;"
-    }[c];
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
   });
 }
 
@@ -435,7 +461,7 @@ async function saveField(el, field, value){
 }
 
 /* ========= 6) 버튼들 ========= */
-document.getElementById("btnNewWeek") && document.getElementById("btnNewWeek").addEventListener("click", async () => {
+document.getElementById("btnNewWeek")?.addEventListener("click", async () => {
   if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
   try{
@@ -449,7 +475,7 @@ document.getElementById("btnNewWeek") && document.getElementById("btnNewWeek").a
   } catch(e){ alert(e.message); }
 });
 
-document.getElementById("btnAddProject") && document.getElementById("btnAddProject").addEventListener("click", async () => {
+document.getElementById("btnAddProject")?.addEventListener("click", async () => {
   if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const name = document.getElementById("inName").value.trim();
   const team = document.getElementById("inTeam").value.trim();
@@ -469,7 +495,7 @@ document.getElementById("btnAddProject") && document.getElementById("btnAddProje
   } catch(e){ alert("추가 실패: " + e.message); }
 });
 
-document.getElementById("btnAddSample") && document.getElementById("btnAddSample").addEventListener("click", async () => {
+document.getElementById("btnAddSample")?.addEventListener("click", async () => {
   if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const samples = [
     {name:"제주-서부1지구", team:"A팀", total:140, completed:90},
@@ -489,8 +515,8 @@ document.getElementById("btnAddSample") && document.getElementById("btnAddSample
   } catch(e){ alert(e.message); }
 });
 
-document.getElementById("btnExport") && document.getElementById("btnExport").addEventListener("click", () => exportCSV(latestProjects));
-document.getElementById("btnRequestEdit") && document.getElementById("btnRequestEdit").addEventListener("click", async () => {
+document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
+document.getElementById("btnRequestEdit")?.addEventListener("click", async () => {
   if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
   const note = prompt("요청 사유를 입력해 주세요 (팀/업무 등)");
   try{
@@ -499,6 +525,21 @@ document.getElementById("btnRequestEdit") && document.getElementById("btnRequest
     });
     alert("요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.");
   } catch(e){ alert(e.message); }
+});
+
+/* 관리자: 전체 삭제 */
+btnDeleteAll?.addEventListener("click", async ()=>{
+  if (!isAdmin) return alert("관리자만 가능합니다.");
+  if (!confirm("모든 사업지구 문서를 삭제할까요? (되돌릴 수 없음)")) return;
+  try {
+    const snap = await db.collection("projects").get();
+    const batch = db.batch();
+    snap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    alert("전체 삭제 완료");
+  } catch(e) {
+    alert("삭제 실패: " + (e.message || e));
+  }
 });
 
 /* ========= 7) CSV ========= */
