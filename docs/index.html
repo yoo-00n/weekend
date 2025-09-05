@@ -696,7 +696,27 @@ const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); };
     var calendarEl = document.getElementById('calendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      height : 200
+      height : 500,
+      editable: true,
+      selectable: true,
+      select: function(info) {
+        const title = prompt("일정 제목을 입력해주세요:");
+        if (title) {
+          calendar.addEvent({
+            title: title,
+            start: info.start,
+            end: info.end,
+            allDay: info.allDay
+          })
+        }
+        calendar.unselect();
+      },
+      eventClick: function(info) {
+        if (confirm("이 일정을 삭제할까요?")) {
+          info.event.remove();
+        }
+      },
+      events: []
     });
     calendar.render();
   });
