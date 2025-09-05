@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,102 +15,406 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
   <style>
-    :root { --bg:#0b1020; --card:#111834; --muted:#8fa3c1; --text:#e8eefb; --brand:#5aa0ff; --accent:#46e0b7; --danger:#ef4444; --ring:#233053; }
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0a0f1e 0%,#0b1226 100%);color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Apple SD Gothic Neo,Noto Sans KR,sans-serif}
-    header{position:sticky;top:0;z-index:10;backdrop-filter:blur(6px);background:rgba(10,15,30,.7);border-bottom:1px solid #1b2446}
-    .wrap{max-width:1200px;margin:0 auto;padding:20px}
-    .row{display:grid;gap:16px}
-    .row.cols-2{grid-template-columns:repeat(2,1fr)}
-    .card{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
-    .card h2{font-size:18px;margin:0 0 8px 0;color:#cfe0ff}
-    .card .pad{padding:16px}
-    .kpi{display:flex;align-items:baseline;gap:8px}
-    .kpi .big{font-size:24px;font-weight:800}
-    .kpi .sub{font-size:13px;color:var(--muted)}
-    .muted{color:var(--muted)}
-    .btn{appearance:none;border:1px solid #2a3a70;background:#12204a;color:#eaf2ff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
-    .btn:hover{background:#16265a}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
-    .danger{background:#2b0e13;border-color:#4a0d17}
-    .danger:hover{background:#3a131a}
-    .accent{background:#0d2b24;border-color:#0a4034}
-    .accent:hover{background:#123c32}
+    :root {
+      --bg: #0b1020;
+      --card: #111834;
+      --muted: #8fa3c1;
+      --text: #e8eefb;
+      --brand: #5aa0ff;
+      --accent: #46e0b7;
+      --danger: #ef4444;
+      --ring: #233053;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #0a0f1e 0%, #0b1226 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+      background: rgba(10, 15, 30, .7);
+      border-bottom: 1px solid #1b2446
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px
+    }
+
+    .row {
+      display: grid;
+      gap: 16px
+    }
+
+    .row.cols-2 {
+      grid-template-columns: repeat(2, 1fr)
+    }
+
+    .card {
+      background: linear-gradient(180deg, #0f1732 0%, #0e1530 100%);
+      border: 1px solid #1b2446;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .25)
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin: 0 0 8px 0;
+      color: #cfe0ff
+    }
+
+    .card .pad {
+      padding: 16px
+    }
+
+    .kpi {
+      display: flex;
+      align-items: baseline;
+      gap: 8px
+    }
+
+    .kpi .big {
+      font-size: 24px;
+      font-weight: 800
+    }
+
+    .kpi .sub {
+      font-size: 13px;
+      color: var(--muted)
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid #2a3a70;
+      background: #12204a;
+      color: #eaf2ff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600
+    }
+
+    .btn:hover {
+      background: #16265a
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .danger {
+      background: #2b0e13;
+      border-color: #4a0d17
+    }
+
+    .danger:hover {
+      background: #3a131a
+    }
+
+    .accent {
+      background: #0d2b24;
+      border-color: #0a4034
+    }
+
+    .accent:hover {
+      background: #123c32
+    }
 
     /* ===== 테이블 & 열 너비 조정 ===== */
-    table{width:100%;border-collapse:separate;border-spacing:0 10px; table-layout:fixed;}
-    thead th{font-size:12px;text-transform:uppercase;color:#a9b8d9;text-align:left;padding:0 8px}
-    tbody td{background:linear-gradient(180deg,#0f1732 0%,#0e1530 100%);border:1px solid #1b2446;border-left:0;border-right:0;padding:12px 8px;vertical-align:middle}
-    tbody tr{border-radius:12px;overflow:hidden}
-    tbody td:first-child{border-left:1px solid #1b2446;border-top-left-radius:12px;border-bottom-left-radius:12px}
-    tbody td:last-child{border-right:1px solid #1b2446;border-top-right-radius:12px;border-bottom-right-radius:12px}
-
-    input[type="number"], input[type="text"], textarea, select{
-      width:100%;background:#0a1330;border:1px solid #1f2c57;color:#e8eefb;border-radius:10px;padding:8px;outline:none
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+      table-layout: fixed;
     }
-    input:focus, textarea:focus, select:focus{box-shadow:0 0 0 3px var(--ring)}
-    textarea{min-height:64px;resize:vertical}
 
-    .delta{font-weight:700}
-    .delta.changed{color:var(--danger)}
-    .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid #27407d;background:#0c1a3f;padding:6px 10px;border-radius:999px;font-size:12px;color:#cfe0ff}
-    .footer{color:#91a1c4;font-size:12px;margin-top:8px}
-    .flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .spacer{flex:1}
-    .hidden{display:none}
-    .btn-xs{padding:4px 8px;font-size:12px;border-radius:8px}
+    thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #a9b8d9;
+      text-align: left;
+      padding: 0 8px
+    }
 
-    .dash{display:grid;grid-template-columns:380px 1fr;gap:16px}
-    @media (max-width: 980px){ .dash{grid-template-columns:1fr} }
-    .dash-right{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,auto);gap:16px}
-    .span-2{grid-column:1 / span 2}
-    .badge{border:1px solid #2d3d72;background:#0e1b40;padding:4px 8px;border-radius:999px;font-size:12px;color:#cfe0ff}
+    tbody td {
+      background: linear-gradient(180deg, #0f1732 0%, #0e1530 100%);
+      border: 1px solid #1b2446;
+      border-left: 0;
+      border-right: 0;
+      padding: 12px 8px;
+      vertical-align: middle
+    }
+
+    tbody tr {
+      border-radius: 12px;
+      overflow: hidden
+    }
+
+    tbody td:first-child {
+      border-left: 1px solid #1b2446;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px
+    }
+
+    tbody td:last-child {
+      border-right: 1px solid #1b2446;
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px
+    }
+
+    input[type="number"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      background: #0a1330;
+      border: 1px solid #1f2c57;
+      color: #e8eefb;
+      border-radius: 10px;
+      padding: 8px;
+      outline: none
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      box-shadow: 0 0 0 3px var(--ring)
+    }
+
+    textarea {
+      min-height: 64px;
+      resize: vertical
+    }
+
+    .delta {
+      font-weight: 700
+    }
+
+    .delta.changed {
+      color: var(--danger)
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #27407d;
+      background: #0c1a3f;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: #cfe0ff
+    }
+
+    .footer {
+      color: #91a1c4;
+      font-size: 12px;
+      margin-top: 8px
+    }
+
+    .flex {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .spacer {
+      flex: 1
+    }
+
+    .hidden {
+      display: none
+    }
+
+    .btn-xs {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 8px
+    }
+
+    .dash {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px
+    }
+
+    @media (max-width: 980px) {
+      .dash {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .dash-right {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: minmax(0, auto);
+      gap: 16px
+    }
+
+    .span-2 {
+      grid-column: 1 / span 2
+    }
+
+    .badge {
+      border: 1px solid #2d3d72;
+      background: #0e1b40;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: #cfe0ff
+    }
 
     /* 열 별 폭 (요청사항 반영) */
-    th.col-team,      td.col-team      { width: 10%; min-width: 90px; white-space:nowrap; }
-    th.col-name,      td.col-name      { width: 18%; min-width: 140px; }
-    th.col-total,     td.col-total     { width: 10%;  min-width: 80px; white-space:nowrap; }   
-    th.col-done,      td.col-done      { width: 10%;  min-width: 80px; white-space:nowrap; }  
-    th.col-progress,  td.col-progress  { width: 12%; min-width: 120px; }
-    th.col-delta,     td.col-delta     { width: 6%;  min-width: 70px; white-space:nowrap; text-align:right }
-    th.col-handover,  td.col-handover  { width: 18%; min-width: 260px; }                      
-    th.col-feedback,  td.col-feedback  { width: 16%; min-width: 220px; }
+    th.col-team,
+    td.col-team {
+      width: 10%;
+      min-width: 90px;
+      white-space: nowrap;
+    }
+
+    th.col-name,
+    td.col-name {
+      width: 18%;
+      min-width: 140px;
+    }
+
+    th.col-total,
+    td.col-total {
+      width: 10%;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+
+    th.col-done,
+    td.col-done {
+      width: 10%;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+
+    th.col-progress,
+    td.col-progress {
+      width: 12%;
+      min-width: 120px;
+    }
+
+    th.col-delta,
+    td.col-delta {
+      width: 6%;
+      min-width: 70px;
+      white-space: nowrap;
+      text-align: right
+    }
+
+    th.col-handover,
+    td.col-handover {
+      width: 18%;
+      min-width: 260px;
+    }
+
+    th.col-feedback,
+    td.col-feedback {
+      width: 16%;
+      min-width: 220px;
+    }
 
     /* 공정률 바 게이지 */
-    .barwrap{position:relative;height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
-    .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--brand,#5aa0ff),var(--accent,#46e0b7))}
-    .barlabel{
-      position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:12px; 
-      color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35); pointer-events: none;}
-     #overallDonut{height:200px !important; max-height:200px !important;}
+    .barwrap {
+      position: relative;
+      height: 10px;
+      background: rgba(255, 255, 255, .12);
+      border-radius: 999px;
+      overflow: hidden
+    }
 
-     /* 관리도구(좌) + 캘린더(우) 2단 레이아웃 */
-.tools-layout{
-  display: grid;
-  grid-template-columns: 1fr 440px;  /* 우측 폭 고정 */
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 1100px){
-  .tools-layout{ grid-template-columns: 1fr; } /* 좁으면 한 줄로 */
-}
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--brand, #5aa0ff), var(--accent, #46e0b7))
+    }
 
-/* 캘린더 카드 */
-.calendar-box{
-  background:#111834;
-  border:1px solid #1b2446;
-  border-radius:12px;
-  padding:16px;
-}
+    .barlabel {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+      pointer-events: none;
+    }
 
-/* 잘림/스크롤 방지: 월뷰 자동 높이 & 폰트 살짝 줄임 */
-.fc .fc-col-header-cell-cushion{ padding:6px 4px; }
-.fc .fc-daygrid-day-number{ font-size:12px; padding:4px; }
-.fc .fc-daygrid-event{ font-size:12px; padding:2px 6px; border-radius:6px; }
+    #overallDonut {
+      height: 200px !important;
+      max-height: 200px !important;
+    }
+
+    /* 관리도구(좌) + 캘린더(우) 2단 레이아웃 */
+    .tools-layout {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      /* 우측 폭 고정 */
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .tools-layout {
+        grid-template-columns: 1fr;
+      }
+
+      /* 좁으면 한 줄로 */
+    }
+
+    /* 캘린더 카드 */
+    .calendar-box {
+      background: #111834;
+      border: 1px solid #1b2446;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    /* 잘림/스크롤 방지: 월뷰 자동 높이 & 폰트 살짝 줄임 */
+    .fc .fc-col-header-cell-cushion {
+      padding: 6px 4px;
+    }
+
+    .fc .fc-daygrid-day-number {
+      font-size: 12px;
+      padding: 4px;
+    }
+
+    .fc .fc-daygrid-event {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
   </style>
 </head>
+
 <body>
   <header>
     <div class="wrap flex" style="padding:12px 20px">
@@ -128,757 +433,777 @@
 
   <main class="wrap" style="padding-top:16px">
     <div class="dash">
-      <div class="card"><div class="pad">
-        <h2>전체 공정률</h2>
-        <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
-        <canvas id="overallDonut" style="margin-top:6px"></canvas>
-      </div></div>
+      <div class="card">
+        <div class="pad">
+          <h2>전체 공정률</h2>
+          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
+          </div>
+          <canvas id="overallDonut" style="margin-top:6px"></canvas>
+        </div>
+      </div>
 
       <div class="dash-right">
-        <div class="card"><div class="pad">
-          <h2>Top 3</h2>
-          <ol id="top3" class="muted" style="padding-left:18px;margin:0"></ol>
-          <div class="footer">진행률(%) 기준</div>
-        </div></div>
-        <div class="card"><div class="pad">
-          <h2>Bottom 3</h2>
-          <ol id="bottom3" class="muted" style="padding-left:18px;margin:0"></ol>
-          <div class="footer">진행률(%) 기준</div>
-        </div></div>
-        <div class="card span-2"><div class="pad">
-          <h2>NOTICE</h2>
-          <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
-          <div class="footer">※ 관리자만 사업지구 추가/삭제 가능</div>
-        </div></div>
+        <div class="card">
+          <div class="pad">
+            <h2>Top 3</h2>
+            <ol id="top3" class="muted" style="padding-left:18px;margin:0"></ol>
+            <div class="footer">진행률(%) 기준</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="pad">
+            <h2>Bottom 3</h2>
+            <ol id="bottom3" class="muted" style="padding-left:18px;margin:0"></ol>
+            <div class="footer">진행률(%) 기준</div>
+          </div>
+        </div>
+        <div class="card span-2">
+          <div class="pad">
+            <h2>NOTICE</h2>
+            <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
+            <div class="footer">※ 관리자만 사업지구 추가/삭제 가능</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:16px"><div class="pad">
-  <h2>관리 도구</h2>
+    <div class="card" style="margin-top:16px">
+      <div class="pad">
+        <h2>관리 도구</h2>
 
-  <!-- ✅ 왼쪽=관리도구 / 오른쪽=캘린더 -->
-  <div class="tools-layout">
+        <!-- ✅ 왼쪽=관리도구 / 오른쪽=캘린더 -->
+        <div class="tools-layout">
 
-    <!-- 왼쪽: 기존 관리도구 전체 -->
-    <section>
-      <div class="btn-row" style="margin-bottom:10px">
-        <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
-        <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
-        <button id="btnExport" class="btn">CSV 내보내기</button>
-        <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
-        <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
+          <!-- 왼쪽: 기존 관리도구 전체 -->
+          <section>
+            <div class="btn-row" style="margin-bottom:10px">
+              <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
+              <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
+              <button id="btnExport" class="btn">CSV 내보내기</button>
+              <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
+              <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
+            </div>
+
+            <div class="row cols-2">
+              <div>
+                <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
+                <div class="row cols-2">
+                  <input id="inName" type="text" placeholder="사업지구명" />
+                  <input id="inTeam" type="text" placeholder="담당팀" />
+                </div>
+                <div class="row cols-2" style="margin-top:8px">
+                  <input id="inTotal" type="number" placeholder="총 필지" />
+                  <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
+                </div>
+                <div class="btn-row" style="margin-top:8px">
+                  <button id="btnAddProject" class="btn" disabled>추가</button>
+                </div>
+                <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
+              </div>
+
+              <div>
+                <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
+                <ul class="muted" style="margin:0 0 6px 16px;padding:0">
+                  <li>1팀 : 김용수, 김두리</li>
+                  <li>2팀 : 이대연, 이승원</li>
+                  <li>3팀 : 김국환, 노시준</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- 오른쪽: 캘린더 (반드시 tools-layout 내부의 두 번째 칸) -->
+          <aside class="calendar-box">
+            <div id="calendar"></div>
+          </aside>
+
+        </div><!-- /.tools-layout -->
       </div>
+    </div>
 
-      <div class="row cols-2">
-        <div>
-          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
-          <div class="row cols-2">
-            <input id="inName" type="text" placeholder="사업지구명" />
-            <input id="inTeam" type="text" placeholder="담당팀" />
-          </div>
-          <div class="row cols-2" style="margin-top:8px">
-            <input id="inTotal" type="number" placeholder="총 필지" />
-            <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
-          </div>
-          <div class="btn-row" style="margin-top:8px">
-            <button id="btnAddProject" class="btn" disabled>추가</button>
-          </div>
-          <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
-        </div>
 
-        <div>
-          <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
-          <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-            <li>1팀 : 김용수, 김두리</li>
-            <li>2팀 : 이대연, 이승원</li>
-            <li>3팀 : 김국환, 노시준</li>
-          </ul>
-        </div>
+    <div class="card" style="margin-top:16px">
+      <div class="pad">
+        <h2>담당팀별 사업지구 현황</h2>
+        <table>
+          <thead>
+            <tr>
+              <th class="col-team">
+                담당팀
+                <select id="teamFilter" style="margin-left:.5rem;max-width:120px">
+                  <option value="__ALL__">전체</option>
+                </select>
+              </th>
+              <th class="col-name">사업지구</th>
+              <th class="col-total">총 필지</th>
+              <th class="col-done">완료 (이번 주)</th>
+              <th class="col-progress">공정률 (%)</th>
+              <th class="col-delta">Δ 주간 (pp)</th>
+              <th class="col-handover">LX 전달사항</th>
+              <th class="col-feedback">소관청 피드백</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
       </div>
-    </section>
+    </div>
 
-    <!-- 오른쪽: 캘린더 (반드시 tools-layout 내부의 두 번째 칸) -->
-    <aside class="calendar-box">
-      <div id="calendar"></div>
-    </aside>
-
-  </div><!-- /.tools-layout -->
-</div></div>
-
-
-    <div class="card" style="margin-top:16px"><div class="pad">
-      <h2>담당팀별 사업지구 현황</h2>
-      <table>
-        <thead>
-          <tr>
-            <th class="col-team">
-              담당팀
-              <select id="teamFilter" style="margin-left:.5rem;max-width:120px">
-                <option value="__ALL__">전체</option>
-              </select>
-            </th>
-            <th class="col-name">사업지구</th>
-            <th class="col-total">총 필지</th>
-            <th class="col-done">완료 (이번 주)</th>
-            <th class="col-progress">공정률 (%)</th>
-            <th class="col-delta">Δ 주간 (pp)</th>
-            <th class="col-handover">LX 전달사항</th>
-            <th class="col-feedback">소관청 피드백</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div></div>
-
-    <div id="adminPanel" class="card hidden" style="margin-top:16px"><div class="pad">
-      <h2>관리자 패널 · 권한 승인</h2>
-      <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
-      <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
-      <div id="requests"></div>
-      <h3 style="color:#cfe0ff;margin-top:12px">현재 권한 사용자</h3>
-      <div id="editors"></div>
-    </div></div>
+    <div id="adminPanel" class="card hidden" style="margin-top:16px">
+      <div class="pad">
+        <h2>관리자 패널 · 권한 승인</h2>
+        <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
+        <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
+        <div id="requests"></div>
+        <h3 style="color:#cfe0ff;margin-top:12px">현재 권한 사용자</h3>
+        <div id="editors"></div>
+      </div>
+    </div>
 
   </main>
 
-<script>
-/* ========= 1) Firebase 설정 ========= */
-const firebaseConfig = {
-  apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
-  authDomain: "weekend-6d16d.firebaseapp.com",
-  projectId: "weekend-6d16d",
-  storageBucket: "weekend-6d16d.appspot.com",
-  messagingSenderId: "399772383646",
-  appId: "1:399772383646:web:21208b83404479669c3e8f",
-  measurementId: "G-35FK2FRMBZ"
-};
-const USER_DOMAIN = "acct.lx.local";
+  <script>
+    /* ========= 1) Firebase 설정 ========= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDQSpN1_hV5cj9wDHqzxwIEfWHUsuMEu0",
+      authDomain: "weekend-6d16d.firebaseapp.com",
+      projectId: "weekend-6d16d",
+      storageBucket: "weekend-6d16d.appspot.com",
+      messagingSenderId: "399772383646",
+      appId: "1:399772383646:web:21208b83404479669c3e8f",
+      measurementId: "G-35FK2FRMBZ"
+    };
+    const USER_DOMAIN = "acct.lx.local";
 
-/* ========= 2) 초기화 ========= */
-let app, db, auth;
-let donutChart = null;
-let currentUser = null;
-let role = null;         // "admin" | "lx" | "namwon" | null
-let isEditor = false;    // (role === "admin" || role === "lx")
-let isAdmin  = false;
+    /* ========= 2) 초기화 ========= */
+    let app, db, auth;
+    let donutChart = null;
+    let currentUser = null;
+    let role = null;         // "admin" | "lx" | "namwon" | null
+    let isEditor = false;    // (role === "admin" || role === "lx")
+    let isAdmin = false;
 
-try {
-  app  = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-  db   = firebase.firestore();
-  auth = firebase.auth();
-} catch (err) {
-  console.error("[Firebase 초기화 실패]", err);
-  document.getElementById("userInfo").textContent = "Firebase 미설정";
-}
-
-/* ========= 3) 인증 ========= */
-const btnSignIn  = document.getElementById("btnSignIn");
-const btnSignOut = document.getElementById("btnSignOut");
-const userInfo   = document.getElementById("userInfo");
-const roleBadge  = document.getElementById("roleBadge");
-const adminPanel = document.getElementById("adminPanel");
-const btnDeleteAll = document.getElementById("btnDeleteAll");
-
-let unsubs = [];
-function clearDataStreams(){ unsubs.forEach(u=>u&&u()); unsubs=[]; }
-
-function bindDataStreams(){
-  clearDataStreams();
-  if (!db || !currentUser) return;
-
-  // projects
-  unsubs.push(
-    db.collection("projects").orderBy("team").onSnapshot((snap) => {
-      latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      latestProjects.sort((a,b)=>
-        String(a.team||"").localeCompare(String(b.team||"")) ||
-        String(a.name||"").localeCompare(String(b.name||""))
-      );
-      renderProjects(latestProjects);
-      renderDashboard(latestProjects);
-      buildTeamFilter(latestProjects);    // ★ 팀 필터 옵션 구성/유지
-      applyTeamFilter();                  // ★ 선택값에 따라 행 표시
-    }, (err) => {
-      console.warn("projects listen error:", err.code || err.message);
-    })
-  );
-
-  // settings
-  unsubs.push(
-    db.collection("settings").doc("dashboard").onSnapshot(doc => {
-      const d = doc.data() || {};
-      if (checklistEl) checklistEl.value = d.checklist || "";
-    }, (err)=>{ console.warn("settings listen error:", err.code || err.message); })
-  );
-}
-
-if (auth) {
-  auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
-    if (user) {
-      const idLike = user.email ? user.email.split("@")[0] : user.uid.slice(0,6);
-      userInfo.textContent = `${idLike} 접속`;
-      btnSignIn.classList.add("hidden");
-      btnSignOut.classList.remove("hidden");
-
-      await refreshRole();
-      setControlsEnabled();
-      bindDataStreams();
-      initCalendar();
-      bindCalendarStreams();
-    } else {
-      userInfo.textContent = "로그인 필요";
-      btnSignIn.classList.remove("hidden");
-      btnSignOut.classList.add("hidden");
-      roleBadge.classList.add("hidden");
-      role = null; isEditor = false; isAdmin = false;
-      setControlsEnabled();
-      clearDataStreams();
-      latestProjects = []; renderProjects(latestProjects); renderDashboard(latestProjects);
-      initCalendar();
-      bindCalendarStreams();
-    }
-  });
-
-  btnSignIn.addEventListener("click", async () => {
     try {
-      const username = prompt("아이디를 입력하세요 (예: ADMIN, LX, NAMWON)");
-      if (!username) return;
-      const password = prompt("비밀번호를 입력하세요");
-      if (!password) return;
-      const email = `${username.trim()}@${USER_DOMAIN}`;
-      await auth.signInWithEmailAndPassword(email, password);
-    } catch (e) {
-      alert(`[로그인 실패] ${e.code || ""} ${e.message || e}`);
+      app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+    } catch (err) {
+      console.error("[Firebase 초기화 실패]", err);
+      document.getElementById("userInfo").textContent = "Firebase 미설정";
     }
-  });
-  btnSignOut.addEventListener("click", async () => { await auth.signOut(); });
-}
 
-async function refreshRole() {
-  role = null; isEditor = false; isAdmin = false;
-  if (!(db && currentUser)) return;
-  const r = await db.collection("roles").doc(currentUser.uid).get();
-  if (r.exists) {
-    role = String(r.data().role || "").toLowerCase();
-    isAdmin  = role === "admin";
-    isEditor = role === "admin" || role === "lx";
-    roleBadge.textContent = role || "unknown";
-    roleBadge.classList.remove("hidden");
-    if (isAdmin) { 
-      adminPanel && adminPanel.classList.remove("hidden"); 
-      btnDeleteAll && btnDeleteAll.classList.remove("hidden");
-      bindAdminStreams(); 
-    } else { 
-      adminPanel && adminPanel.classList.add("hidden");    
-      btnDeleteAll && btnDeleteAll.classList.add("hidden");
-      clearAdminStreams(); 
+    /* ========= 3) 인증 ========= */
+    const btnSignIn = document.getElementById("btnSignIn");
+    const btnSignOut = document.getElementById("btnSignOut");
+    const userInfo = document.getElementById("userInfo");
+    const roleBadge = document.getElementById("roleBadge");
+    const adminPanel = document.getElementById("adminPanel");
+    const btnDeleteAll = document.getElementById("btnDeleteAll");
+
+    let unsubs = [];
+    function clearDataStreams() { unsubs.forEach(u => u && u()); unsubs = []; }
+
+    function bindDataStreams() {
+      clearDataStreams();
+      if (!db || !currentUser) return;
+
+      // projects
+      unsubs.push(
+        db.collection("projects").orderBy("team").onSnapshot((snap) => {
+          latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          latestProjects.sort((a, b) =>
+            String(a.team || "").localeCompare(String(b.team || "")) ||
+            String(a.name || "").localeCompare(String(b.name || ""))
+          );
+          renderProjects(latestProjects);
+          renderDashboard(latestProjects);
+          buildTeamFilter(latestProjects);    // ★ 팀 필터 옵션 구성/유지
+          applyTeamFilter();                  // ★ 선택값에 따라 행 표시
+        }, (err) => {
+          console.warn("projects listen error:", err.code || err.message);
+        })
+      );
+
+      // settings
+      unsubs.push(
+        db.collection("settings").doc("dashboard").onSnapshot(doc => {
+          const d = doc.data() || {};
+          if (checklistEl) checklistEl.value = d.checklist || "";
+        }, (err) => { console.warn("settings listen error:", err.code || err.message); })
+      );
     }
-  } else {
-    roleBadge.textContent = "no-role";
-    roleBadge.classList.remove("hidden");
-    adminPanel && adminPanel.classList.add("hidden");
-    btnDeleteAll && btnDeleteAll.classList.add("hidden");
-  }
-}
 
-function setControlsEnabled() {
-  setDisabled("btnNewWeek",   !(currentUser && isAdmin));
-  setDisabled("btnAddProject",!(currentUser && isAdmin));
-  setDisabled("btnAddSample", !(currentUser && isAdmin));
-  const checklist = document.getElementById("checklist");
-  if (checklist) checklist.disabled = !(currentUser && isAdmin);
-  renderProjects(latestProjects);
-}
-function setDisabled(id, yes){ const el = document.getElementById(id); if (el) el.disabled = !!yes; }
+    if (auth) {
+      auth.onAuthStateChanged(async (user) => {
+        currentUser = user;
+        if (user) {
+          const idLike = user.email ? user.email.split("@")[0] : user.uid.slice(0, 6);
+          userInfo.textContent = `${idLike} 접속`;
+          btnSignIn.classList.add("hidden");
+          btnSignOut.classList.remove("hidden");
 
-/* ========= 4) 데이터 ========= */
-const tbody         = document.getElementById("tbody");
-const top3El        = document.getElementById("top3");
-const bottom3El     = document.getElementById("bottom3");
-const kpiProgressEl = document.getElementById("kpiProgress");
-const kpiParcelsEl  = document.getElementById("kpiParcels");
-const checklistEl   = document.getElementById("checklist");
-const teamFilterEl  = document.getElementById("teamFilter");
+          await refreshRole();
+          setControlsEnabled();
+          bindDataStreams();
+          initCalendar();
+          bindCalendarStreams();
+        } else {
+          userInfo.textContent = "로그인 필요";
+          btnSignIn.classList.remove("hidden");
+          btnSignOut.classList.add("hidden");
+          roleBadge.classList.add("hidden");
+          role = null; isEditor = false; isAdmin = false;
+          setControlsEnabled();
+          clearDataStreams();
+          latestProjects = []; renderProjects(latestProjects); renderDashboard(latestProjects);
+          initCalendar();
+          bindCalendarStreams();
+        }
+      });
 
-let latestProjects = [];
+      btnSignIn.addEventListener("click", async () => {
+        try {
+          const username = prompt("아이디를 입력하세요 (예: ADMIN, LX, NAMWON)");
+          if (!username) return;
+          const password = prompt("비밀번호를 입력하세요");
+          if (!password) return;
+          const email = `${username.trim()}@${USER_DOMAIN}`;
+          await auth.signInWithEmailAndPassword(email, password);
+        } catch (e) {
+          alert(`[로그인 실패] ${e.code || ""} ${e.message || e}`);
+        }
+      });
+      btnSignOut.addEventListener("click", async () => { await auth.signOut(); });
+    }
 
-/* ========= 5) 렌더/계산 ========= */
-function pct1(completed, total){
-  const p = (!total || total<=0) ? 0 : (completed/total*100);
-  return Math.round(p*10)/10;
-}
-function pctInt(completed, total){   // 정수 표시용
-  const p = (!total || total<=0) ? 0 : (completed/total*100);
-  return Math.round(p);
-}
+    async function refreshRole() {
+      role = null; isEditor = false; isAdmin = false;
+      if (!(db && currentUser)) return;
+      const r = await db.collection("roles").doc(currentUser.uid).get();
+      if (r.exists) {
+        role = String(r.data().role || "").toLowerCase();
+        isAdmin = role === "admin";
+        isEditor = role === "admin" || role === "lx";
+        roleBadge.textContent = role || "unknown";
+        roleBadge.classList.remove("hidden");
+        if (isAdmin) {
+          adminPanel && adminPanel.classList.remove("hidden");
+          btnDeleteAll && btnDeleteAll.classList.remove("hidden");
+          bindAdminStreams();
+        } else {
+          adminPanel && adminPanel.classList.add("hidden");
+          btnDeleteAll && btnDeleteAll.classList.add("hidden");
+          clearAdminStreams();
+        }
+      } else {
+        roleBadge.textContent = "no-role";
+        roleBadge.classList.remove("hidden");
+        adminPanel && adminPanel.classList.add("hidden");
+        btnDeleteAll && btnDeleteAll.classList.add("hidden");
+      }
+    }
 
-function renderDashboard(rows){
-  const totalAll = rows.reduce((s,r)=>s+(Number(r.total)||0),0);
-  const doneAll  = rows.reduce((s,r)=>s+(Number(r.completed)||0),0);
-  const progress = pct1(doneAll,totalAll);
-  kpiProgressEl.textContent = progress.toFixed(1) + "%";
-  kpiParcelsEl.textContent  = `${doneAll} / ${totalAll} 필지`;
+    function setControlsEnabled() {
+      setDisabled("btnNewWeek", !(currentUser && isAdmin));
+      setDisabled("btnAddProject", !(currentUser && isAdmin));
+      setDisabled("btnAddSample", !(currentUser && isAdmin));
+      const checklist = document.getElementById("checklist");
+      if (checklist) checklist.disabled = !(currentUser && isAdmin);
+      renderProjects(latestProjects);
+    }
+    function setDisabled(id, yes) { const el = document.getElementById(id); if (el) el.disabled = !!yes; }
 
-  const remain = Math.max(0,totalAll-doneAll);
-  const data = { labels:["완료","잔여"], datasets:[{ data:[doneAll, remain] }] };
-  const opt  = { plugins:{ legend:{ labels:{ color:"#cfe0ff" } } }, cutout:"60%", maintainAspectRatio:false, layout:{padding:0} };
-  const ctx  = document.getElementById("overallDonut");
-  if (donutChart) { donutChart.data = data; donutChart.update(); }
-  else { donutChart = new Chart(ctx, { type:"doughnut", data, options: opt }); }
+    /* ========= 4) 데이터 ========= */
+    const tbody = document.getElementById("tbody");
+    const top3El = document.getElementById("top3");
+    const bottom3El = document.getElementById("bottom3");
+    const kpiProgressEl = document.getElementById("kpiProgress");
+    const kpiParcelsEl = document.getElementById("kpiParcels");
+    const checklistEl = document.getElementById("checklist");
+    const teamFilterEl = document.getElementById("teamFilter");
 
-  const withPct = rows.map(r=>({...r, p: pct1(Number(r.completed)||0, Number(r.total)||0)}))
-                      .filter(r=> (Number(r.total)||0) > 0)
-                      .sort((a,b)=>b.p - a.p);
-  const top = withPct.slice(0,3);
-  const bottom = withPct.slice(-3).reverse();
-  top3El.innerHTML    = top.map(r=>`<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
-  bottom3El.innerHTML = bottom.map(r=>`<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
-}
+    let latestProjects = [];
 
-function renderProjects(rows){
-  if (!tbody) return;
-  tbody.innerHTML = "";
-  rows.forEach(r=>{
-    const total = Number(r.total)||0;
-    const comp  = Number(r.completed)||0;
-    const last  = Number(r.completed_last_week)||0;
-    const pNow1 = pct1(comp,total);       // 1자리 소수 (Δ 계산/다운로드용)
-    const pPrev = pct1(last,total);
-    const diff  = Math.round((pNow1 - pPrev)*10)/10;
-    const changed = Math.abs(diff) > 0.0001;
-    const pInt = pctInt(comp,total);      // ★ 정수 표시 + 게이지
+    /* ========= 5) 렌더/계산 ========= */
+    function pct1(completed, total) {
+      const p = (!total || total <= 0) ? 0 : (completed / total * 100);
+      return Math.round(p * 10) / 10;
+    }
+    function pctInt(completed, total) {   // 정수 표시용
+      const p = (!total || total <= 0) ? 0 : (completed / total * 100);
+      return Math.round(p);
+    }
 
-    const tr = document.createElement("tr");
-    tr.dataset.team = r.team || "";
-    tr.innerHTML = `
-      <td class="col-team">${esc(r.team||"")}</td>
+    function renderDashboard(rows) {
+      const totalAll = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
+      const doneAll = rows.reduce((s, r) => s + (Number(r.completed) || 0), 0);
+      const progress = pct1(doneAll, totalAll);
+      kpiProgressEl.textContent = progress.toFixed(1) + "%";
+      kpiParcelsEl.textContent = `${doneAll} / ${totalAll} 필지`;
+
+      const remain = Math.max(0, totalAll - doneAll);
+      const data = { labels: ["완료", "잔여"], datasets: [{ data: [doneAll, remain] }] };
+      const opt = { plugins: { legend: { labels: { color: "#cfe0ff" } } }, cutout: "60%", maintainAspectRatio: false, layout: { padding: 0 } };
+      const ctx = document.getElementById("overallDonut");
+      if (donutChart) { donutChart.data = data; donutChart.update(); }
+      else { donutChart = new Chart(ctx, { type: "doughnut", data, options: opt }); }
+
+      const withPct = rows.map(r => ({ ...r, p: pct1(Number(r.completed) || 0, Number(r.total) || 0) }))
+        .filter(r => (Number(r.total) || 0) > 0)
+        .sort((a, b) => b.p - a.p);
+      const top = withPct.slice(0, 3);
+      const bottom = withPct.slice(-3).reverse();
+      top3El.innerHTML = top.map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
+      bottom3El.innerHTML = bottom.map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
+    }
+
+    function renderProjects(rows) {
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      rows.forEach(r => {
+        const total = Number(r.total) || 0;
+        const comp = Number(r.completed) || 0;
+        const last = Number(r.completed_last_week) || 0;
+        const pNow1 = pct1(comp, total);       // 1자리 소수 (Δ 계산/다운로드용)
+        const pPrev = pct1(last, total);
+        const diff = Math.round((pNow1 - pPrev) * 10) / 10;
+        const changed = Math.abs(diff) > 0.0001;
+        const pInt = pctInt(comp, total);      // ★ 정수 표시 + 게이지
+
+        const tr = document.createElement("tr");
+        tr.dataset.team = r.team || "";
+        tr.innerHTML = `
+      <td class="col-team">${esc(r.team || "")}</td>
       <td class="col-name">
-        ${esc(r.name||"")}
+        ${esc(r.name || "")}
         ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
       </td>
       <td class="col-total"><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
       <td class="col-done"><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
       <td class="col-progress">
         <div class="barwrap">
-          <div class="bar" style="width:${Math.max(0,Math.min(100,pInt))}%""></div>
+          <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%""></div>
           <span class="barlabel">${pInt}</span>
         </div>
       </td>
-      <td class="col-delta delta ${changed?"changed":""}">${changed ? (diff>0?"+":"")+diff.toFixed(1) : "—"}</td>
-      <td class="col-handover"><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes||"")}</textarea></td>
-      <td class="col-feedback"><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback||"")}</textarea></td>
+      <td class="col-delta delta ${changed ? "changed" : ""}">${changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "—"}</td>
+      <td class="col-handover"><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes || "")}</textarea></td>
+      <td class="col-feedback"><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback || "")}</textarea></td>
     `;
-    tbody.appendChild(tr);
-  });
-
-  // 입력 바인딩
-  tbody.querySelectorAll(".in-total").forEach(el=>{
-    el.addEventListener("input", debounce(e=> saveField(e.target,"total", toNum(e.target.value)), 500));
-    el.addEventListener("input", debounce(()=>{ refreshBarsForRow(el.closest("tr")); }, 520));
-  });
-  tbody.querySelectorAll(".in-completed").forEach(el=>{
-    el.addEventListener("input", debounce(e=> saveField(e.target,"completed", toNum(e.target.value)), 500));
-    el.addEventListener("input", debounce(()=>{ refreshBarsForRow(el.closest("tr")); }, 520));
-  });
-  tbody.querySelectorAll(".in-lx").forEach(el=>{
-    el.addEventListener("input", debounce(e=> saveField(e.target,"lxNotes", e.target.value), 700));
-  });
-  tbody.querySelectorAll(".in-auth").forEach(el=>{
-    el.addEventListener("input", debounce(e=> saveField(e.target,"authorityFeedback", e.target.value), 700));
-  });
-
-  // 관리자: 삭제 버튼 바인딩
-  if (isAdmin) {
-    tbody.querySelectorAll("[data-del]").forEach(btn=>{
-      btn.addEventListener("click", async (e)=>{
-        const id  = e.currentTarget.getAttribute("data-del");
-        if (!id) return;
-        if (!confirm("이 사업지구를 삭제할까요?")) return;
-        try{
-          await db.collection("projects").doc(id).delete();
-        }catch(err){
-          alert("삭제 실패: " + (err.message || err));
-        }
+        tbody.appendChild(tr);
       });
+
+      // 입력 바인딩
+      tbody.querySelectorAll(".in-total").forEach(el => {
+        el.addEventListener("input", debounce(e => saveField(e.target, "total", toNum(e.target.value)), 500));
+        el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
+      });
+      tbody.querySelectorAll(".in-completed").forEach(el => {
+        el.addEventListener("input", debounce(e => saveField(e.target, "completed", toNum(e.target.value)), 500));
+        el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
+      });
+      tbody.querySelectorAll(".in-lx").forEach(el => {
+        el.addEventListener("input", debounce(e => saveField(e.target, "lxNotes", e.target.value), 700));
+      });
+      tbody.querySelectorAll(".in-auth").forEach(el => {
+        el.addEventListener("input", debounce(e => saveField(e.target, "authorityFeedback", e.target.value), 700));
+      });
+
+      // 관리자: 삭제 버튼 바인딩
+      if (isAdmin) {
+        tbody.querySelectorAll("[data-del]").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            const id = e.currentTarget.getAttribute("data-del");
+            if (!id) return;
+            if (!confirm("이 사업지구를 삭제할까요?")) return;
+            try {
+              await db.collection("projects").doc(id).delete();
+            } catch (err) {
+              alert("삭제 실패: " + (err.message || err));
+            }
+          });
+        });
+      }
+    }
+
+    function refreshBarsForRow(tr) {
+      if (!tr) return;
+      const total = toNum(tr.querySelector(".in-total")?.value);
+      const comp = toNum(tr.querySelector(".in-completed")?.value);
+      const p = pctInt(comp, total);
+      const bar = tr.querySelector(".bar");
+      const label = tr.querySelector(".barlabel");
+      if (bar) bar.style.width = Math.max(0, Math.min(100, p)) + "%";
+      if (label) label.textContent = p + "%";
+    }
+
+    function inputEditable() { return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
+    function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+    function esc(s) { return String(s).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])); }
+
+    async function saveField(el, field, value) {
+      if (!(auth && currentUser && db)) return;
+      try {
+        const id = el.getAttribute("data-id");
+        await db.collection("projects").doc(id).update({
+          [field]: value,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) {
+        if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
+        else alert("저장 실패: " + e.message);
+      }
+    }
+
+    /* ========= 6) 버튼들 ========= */
+    document.getElementById("btnNewWeek")?.addEventListener("click", async () => {
+      if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
+      if (!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
+      try {
+        const snap = await db.collection("projects").get();
+        const batch = db.batch();
+        snap.forEach(doc => {
+          const d = doc.data();
+          batch.update(doc.ref, { completed_last_week: Number(d.completed) || 0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+        await batch.commit(); alert("새 주 시작 완료");
+      } catch (e) { alert(e.message); }
     });
-  }
-}
 
-function refreshBarsForRow(tr){
-  if(!tr) return;
-  const total = toNum(tr.querySelector(".in-total")?.value);
-  const comp  = toNum(tr.querySelector(".in-completed")?.value);
-  const p = pctInt(comp,total);
-  const bar = tr.querySelector(".bar");
-  const label = tr.querySelector(".barlabel");
-  if(bar) bar.style.width = Math.max(0,Math.min(100,p)) + "%";
-  if(label) label.textContent = p + "%";
-}
-
-function inputEditable(){ return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
-function toNum(v){ const n = Number(v); return isFinite(n)? n: 0; }
-function esc(s){ return String(s).replace(/[&<>\"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
-
-async function saveField(el, field, value){
-  if (!(auth && currentUser && db)) return;
-  try{
-    const id = el.getAttribute("data-id");
-    await db.collection("projects").doc(id).update({
-      [field]: value,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    document.getElementById("btnAddProject")?.addEventListener("click", async () => {
+      if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
+      const name = document.getElementById("inName").value.trim();
+      const team = document.getElementById("inTeam").value.trim();
+      const total = toNum(document.getElementById("inTotal").value);
+      const completed = toNum(document.getElementById("inCompleted").value);
+      if (!name || !team) return alert("사업지구명과 팀을 입력하세요.");
+      try {
+        await db.collection("projects").add({
+          name, team, total, completed, completed_last_week: completed,
+          lxNotes: "", authorityFeedback: "",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById("inName").value = "";
+        document.getElementById("inTeam").value = "";
+        document.getElementById("inTotal").value = "";
+        document.getElementById("inCompleted").value = "";
+      } catch (e) { alert("추가 실패: " + e.message); }
     });
-  }catch(e){
-    if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
-    else alert("저장 실패: " + e.message);
-  }
-}
 
-/* ========= 6) 버튼들 ========= */
-document.getElementById("btnNewWeek")?.addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
-  if(!confirm('모든 사업지구의 "지난 주 완료" 값을 이번 주 완료 값으로 이월합니다. 진행할까요?')) return;
-  try{
-    const snap = await db.collection("projects").get();
-    const batch = db.batch();
-    snap.forEach(doc => {
-      const d = doc.data();
-      batch.update(doc.ref, { completed_last_week: Number(d.completed)||0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    document.getElementById("btnAddSample")?.addEventListener("click", async () => {
+      if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
+      const samples = [
+        { name: "제주-서부1지구", team: "A팀", total: 140, completed: 90 },
+        { name: "제주-서부2지구", team: "A팀", total: 110, completed: 45 },
+        { name: "제주-북부지구", team: "B팀", total: 95, completed: 80 },
+        { name: "제주-중산간지구", team: "B팀", total: 200, completed: 60 },
+        { name: "제주-서귀포지구", team: "C팀", total: 150, completed: 15 }
+      ];
+      try {
+        const batch = db.batch();
+        const col = db.collection("projects");
+        samples.forEach(s => {
+          const ref = col.doc();
+          batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes: "", authorityFeedback: "", updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+        await batch.commit(); alert("샘플 데이터 추가 완료");
+      } catch (e) { alert(e.message); }
     });
-    await batch.commit(); alert("새 주 시작 완료");
-  } catch(e){ alert(e.message); }
-});
 
-document.getElementById("btnAddProject")?.addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
-  const name = document.getElementById("inName").value.trim();
-  const team = document.getElementById("inTeam").value.trim();
-  const total = toNum(document.getElementById("inTotal").value);
-  const completed = toNum(document.getElementById("inCompleted").value);
-  if(!name || !team) return alert("사업지구명과 팀을 입력하세요.");
-  try{
-    await db.collection("projects").add({
-      name, team, total, completed, completed_last_week: completed,
-      lxNotes:"", authorityFeedback:"",
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
+    document.getElementById("btnRequestEdit")?.addEventListener("click", async () => {
+      if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
+      const note = prompt("요청 사유를 입력해 주세요 (팀/업무 등)");
+      try {
+        await db.collection("edit_requests").doc(currentUser.uid).set({
+          uid: currentUser.uid, note: note || "", createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.");
+      } catch (e) { alert(e.message); }
     });
-    document.getElementById("inName").value="";
-    document.getElementById("inTeam").value="";
-    document.getElementById("inTotal").value="";
-    document.getElementById("inCompleted").value="";
-  } catch(e){ alert("추가 실패: " + e.message); }
-});
 
-document.getElementById("btnAddSample")?.addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
-  const samples = [
-    {name:"제주-서부1지구", team:"A팀", total:140, completed:90},
-    {name:"제주-서부2지구", team:"A팀", total:110, completed:45},
-    {name:"제주-북부지구",  team:"B팀", total:95,  completed:80},
-    {name:"제주-중산간지구",team:"B팀", total:200, completed:60},
-    {name:"제주-서귀포지구",team:"C팀", total:150, completed:15}
-  ];
-  try{
-    const batch = db.batch();
-    const col = db.collection("projects");
-    samples.forEach(s => {
-      const ref = col.doc();
-      batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes:"", authorityFeedback:"", updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    /* 관리자: 전체 삭제 */
+    btnDeleteAll?.addEventListener("click", async () => {
+      if (!isAdmin) return alert("관리자만 가능합니다.");
+      if (!confirm("모든 사업지구 문서를 삭제할까요? (되돌릴 수 없음)")) return;
+      try {
+        const snap = await db.collection("projects").get();
+        const batch = db.batch();
+        snap.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        alert("전체 삭제 완료");
+      } catch (e) {
+        alert("삭제 실패: " + (e.message || e));
+      }
     });
-    await batch.commit(); alert("샘플 데이터 추가 완료");
-  } catch(e){ alert(e.message); }
-});
 
-document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
-document.getElementById("btnRequestEdit")?.addEventListener("click", async () => {
-  if(!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
-  const note = prompt("요청 사유를 입력해 주세요 (팀/업무 등)");
-  try{
-    await db.collection("edit_requests").doc(currentUser.uid).set({
-      uid: currentUser.uid, note: note||"", createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    alert("요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.");
-  } catch(e){ alert(e.message); }
-});
+    /* ========= 7) CSV ========= */
+    function exportCSV(rows) {
+      const headers = ["team", "name", "total", "completed", "completed_last_week", "progress_now", "progress_prev", "delta_pp", "lxNotes", "authorityFeedback"];
+      const lines = [headers.join(",")];
+      rows.forEach(r => {
+        const total = Number(r.total) || 0, comp = Number(r.completed) || 0, last = Number(r.completed_last_week) || 0;
+        const pNow = pct1(comp, total), pPrev = pct1(last, total), d = (pNow - pPrev).toFixed(1);
+        const vals = [r.team || "", r.name || "", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes || ""), quote(r.authorityFeedback || "")];
+        lines.push(vals.join(","));
+      });
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const blob = new Blob([bom, lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "projects.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+    function quote(s) { const t = String(s).replaceAll('"', '""'); return `"${t}"`; }
 
-/* 관리자: 전체 삭제 */
-btnDeleteAll?.addEventListener("click", async ()=>{
-  if (!isAdmin) return alert("관리자만 가능합니다.");
-  if (!confirm("모든 사업지구 문서를 삭제할까요? (되돌릴 수 없음)")) return;
-  try {
-    const snap = await db.collection("projects").get();
-    const batch = db.batch();
-    snap.forEach(d => batch.delete(d.ref));
-    await batch.commit();
-    alert("전체 삭제 완료");
-  } catch(e) {
-    alert("삭제 실패: " + (e.message || e));
-  }
-});
-
-/* ========= 7) CSV ========= */
-function exportCSV(rows){
-  const headers = ["team","name","total","completed","completed_last_week","progress_now","progress_prev","delta_pp","lxNotes","authorityFeedback"];
-  const lines = [headers.join(",")];
-  rows.forEach(r => {
-    const total = Number(r.total)||0, comp=Number(r.completed)||0, last=Number(r.completed_last_week)||0;
-    const pNow=pct1(comp,total), pPrev=pct1(last,total), d=(pNow-pPrev).toFixed(1);
-    const vals = [r.team||"", r.name||"", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes||""), quote(r.authorityFeedback||"")];
-    lines.push(vals.join(","));
-  });
-  const bom = new Uint8Array([0xEF,0xBB,0xBF]);
-  const blob = new Blob([bom, lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "projects.csv";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),0);
-}
-function quote(s){ const t = String(s).replaceAll('"','""'); return `"${t}"`; }
-
-/* ========= 8) 관리자 패널 ========= */
-const requestsBox = document.getElementById("requests");
-const editorsBox  = document.getElementById("editors");
-let unsubsAdmin = [];
-function clearAdminStreams(){ unsubsAdmin.forEach(u=>u&&u()); unsubsAdmin=[]; }
-function bindAdminStreams(){
-  clearAdminStreams();
-  if(!isAdmin) return;
-  unsubsAdmin.push(
-    db.collection("edit_requests").orderBy("createdAt","desc").onSnapshot(snap=>{
-      if(!requestsBox) return;
-      if(snap.empty){ requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
-      requestsBox.innerHTML = snap.docs.map(d=>{
-        const x=d.data();
-        return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+    /* ========= 8) 관리자 패널 ========= */
+    const requestsBox = document.getElementById("requests");
+    const editorsBox = document.getElementById("editors");
+    let unsubsAdmin = [];
+    function clearAdminStreams() { unsubsAdmin.forEach(u => u && u()); unsubsAdmin = []; }
+    function bindAdminStreams() {
+      clearAdminStreams();
+      if (!isAdmin) return;
+      unsubsAdmin.push(
+        db.collection("edit_requests").orderBy("createdAt", "desc").onSnapshot(snap => {
+          if (!requestsBox) return;
+          if (snap.empty) { requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
+          requestsBox.innerHTML = snap.docs.map(d => {
+            const x = d.data();
+            return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
                   <div>
                     <div><b>UID:</b> ${d.id}</div>
-                    <div class="muted">${esc(x.note||"요청 사유 없음")}</div>
+                    <div class="muted">${esc(x.note || "요청 사유 없음")}</div>
                   </div>
                   <div class="btn-row">
                     <button class="btn accent" onclick="approveEditor('${d.id}')">승인(LX)</button>
                     <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
                   </div>
                 </div>`;
-      }).join("");
-    })
-  );
-  unsubsAdmin.push(
-    db.collection("roles").orderBy("role").onSnapshot(snap=>{
-      if(!editorsBox) return;
-      if(snap.empty){ editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
-      editorsBox.innerHTML = snap.docs.map(d=>{
-        const x=d.data();
-        return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                  <div><b>${d.id.slice(0,10)}...</b> <span class="badge">${esc(x.role)}</span></div>
+          }).join("");
+        })
+      );
+      unsubsAdmin.push(
+        db.collection("roles").orderBy("role").onSnapshot(snap => {
+          if (!editorsBox) return;
+          if (snap.empty) { editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
+          editorsBox.innerHTML = snap.docs.map(d => {
+            const x = d.data();
+            return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                  <div><b>${d.id.slice(0, 10)}...</b> <span class="badge">${esc(x.role)}</span></div>
                   <div class="btn-row">
-                    ${x.role!=="admin" ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">권한 회수</button>` : ""}
+                    ${x.role !== "admin" ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">권한 회수</button>` : ""}
                   </div>
                 </div>`;
-      }).join("");
-    })
-  );
-}
-window.approveEditor = async function(targetUid){
-  try{
-    await db.collection("roles").doc(targetUid).set({ role:"lx", grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
-    await db.collection("edit_requests").doc(targetUid).delete();
-    alert("승인 완료 (LX 권한)");
-  }catch(e){ alert(e.message); }
-};
-window.rejectRequest = async function(targetUid){
-  try{ await db.collection("edit_requests").doc(targetUid).delete(); }
-  catch(e){ alert(e.message); }
-};
-window.revokeEditor = async function(targetUid){
-  if(!confirm("이 사용자의 권한을 회수할까요? (보기만 가능)")) return;
-  try{ await db.collection("roles").doc(targetUid).set({ role:"namwon" }, {merge:true}); alert("회수 완료"); }
-  catch(e){ alert(e.message); }
-};
-
-/* ========= 9) 팀 필터 ========= */
-let lastTeamOptionSig = "";
-function buildTeamFilter(rows){
-  if(!teamFilterEl) return;
-  const teams = Array.from(new Set(rows.map(r => (r.team||"").trim()).filter(Boolean))).sort();
-  const sig = teams.join("|");
-  if(sig === lastTeamOptionSig) return; // 옵션 변동 없으면 건너뜀
-
-  const current = teamFilterEl.value || "__ALL__";
-  teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` + 
-    teams.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join("");
-  lastTeamOptionSig = sig;
-  // 기존 선택 유지
-  const keep = [...teamFilterEl.options].some(o=>o.value===current);
-  teamFilterEl.value = keep ? current : "__ALL__";
-}
-function applyTeamFilter(){
-  if(!teamFilterEl) return;
-  const v = teamFilterEl.value;
-  document.querySelectorAll("#tbody tr").forEach(tr=>{
-    const t = (tr.dataset.team||"").trim();
-    tr.style.display = (v==="__ALL__" || t===v) ? "" : "none";
-  });
-}
-teamFilterEl?.addEventListener("change", applyTeamFilter);
-
-/* ========= 10) 유틸 ========= */
-function debounce(fn, wait){ let t; return function(){ clearTimeout(t); 
-const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); }; }
-</script>
-
-<!-- 11) 캘린더 -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
-<script>
-/* ===== 캘린더(FullCalendar) + Firestore 연동 ===== */
-let calendar;                  // FullCalendar 인스턴스
-let eventsUnsub = null;        // Firestore 구독 해제 함수
-const CAL_COL = "calendar_events";
-
-/** FullCalendar 생성/옵션 적용 */
-function initCalendar() {
-  const calendarEl = document.getElementById("calendar");
-  if (!calendarEl) return;
-
-  // 이미 생성되어 있으면 옵션만 갱신
-  if (calendar) {
-    calendar.setOption("editable", !!(currentUser && (isEditor || isAdmin)));
-    calendar.setOption("selectable", !!(currentUser && (isEditor || isAdmin)));
-    return;
-  }
-
-  calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "dayGridMonth",
-    height: 'auto',
-    editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
-    selectable: !!(currentUser && (isEditor || isAdmin)),
-    headerToolbar: {
-      left: "prev,next today",
-      center: "title",
-      right: "dayGridMonth,timeGridWeek,timeGridDay"
-    },
-
-    // 날짜 드래그 선택 → 새 일정 추가 (권한자만)
-    select: async function(info) {
-      if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
-      const title = prompt("일정 제목을 입력하세요:");
-      if (!title) { calendar.unselect(); return; }
+          }).join("");
+        })
+      );
+    }
+    window.approveEditor = async function (targetUid) {
       try {
-        await db.collection(CAL_COL).add({
-          title,
-          start: info.start,                     // Firestore에 Date 타입으로 저장
-          end: info.end,                         // (null 가능)
-          allDay: info.allDay,
-          createdBy: currentUser.uid,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (e) {
-        alert("일정 추가 실패: " + (e.message || e));
-      } finally {
-        calendar.unselect();
-      }
-    },
+        await db.collection("roles").doc(targetUid).set({ role: "lx", grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        await db.collection("edit_requests").doc(targetUid).delete();
+        alert("승인 완료 (LX 권한)");
+      } catch (e) { alert(e.message); }
+    };
+    window.rejectRequest = async function (targetUid) {
+      try { await db.collection("edit_requests").doc(targetUid).delete(); }
+      catch (e) { alert(e.message); }
+    };
+    window.revokeEditor = async function (targetUid) {
+      if (!confirm("이 사용자의 권한을 회수할까요? (보기만 가능)")) return;
+      try { await db.collection("roles").doc(targetUid).set({ role: "namwon" }, { merge: true }); alert("회수 완료"); }
+      catch (e) { alert(e.message); }
+    };
 
-    // 이벤트 클릭 → 삭제
-    eventClick: async function(info) {
-      if (!(currentUser && (isEditor || isAdmin))) return;
-      if (!confirm("이 일정을 삭제할까요?")) return;
-      try {
-        await db.collection(CAL_COL).doc(info.event.id).delete();
-      } catch (e) {
-        alert("삭제 실패: " + (e.message || e));
-      }
-    },
+    /* ========= 9) 팀 필터 ========= */
+    let lastTeamOptionSig = "";
+    function buildTeamFilter(rows) {
+      if (!teamFilterEl) return;
+      const teams = Array.from(new Set(rows.map(r => (r.team || "").trim()).filter(Boolean))).sort();
+      const sig = teams.join("|");
+      if (sig === lastTeamOptionSig) return; // 옵션 변동 없으면 건너뜀
 
-    // 드래그로 이동
-    eventDrop: async function(info) {
-      if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
-      try {
-        await db.collection(CAL_COL).doc(info.event.id).update({
-          start: info.event.start,
-          end: info.event.end,
-          allDay: info.event.allDay,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (e) {
-        info.revert();
-        alert("이동 실패: " + (e.message || e));
-      }
-    },
-
-    // 리사이즈로 기간 변경
-    eventResize: async function(info) {
-      if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
-      try {
-        await db.collection(CAL_COL).doc(info.event.id).update({
-          start: info.event.start,
-          end: info.event.end,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (e) {
-        info.revert();
-        alert("수정 실패: " + (e.message || e));
-      }
-    },
-
-    events: [] // Firestore에서 실시간으로 채움
-  });
-
-  calendar.render();
-}
-
-/** Firestore 실시간 구독 (캘린더와 동기화) */
-function bindCalendarStreams() {
-  // 이전 구독 해제
-  if (eventsUnsub) { eventsUnsub(); eventsUnsub = null; }
-  if (!db) return;
-
-  eventsUnsub = db.collection(CAL_COL)
-    .orderBy("start", "asc")
-    .onSnapshot((snap) => {
-      if (!calendar) return;
-      snap.docChanges().forEach((chg) => {
-        const id = chg.doc.id;
-        const d  = chg.doc.data();
-
-        // Firestore Date ↔ JS Date 자동 변환 (compat SDK는 Date로 넣으면 Date로 나옵니다)
-        const ev = {
-          id,
-          title: d.title || "(제목 없음)",
-          start: d.start ? new Date(d.start.seconds ? d.start.seconds * 1000 : d.start) : null,
-          end:   d.end   ? new Date(d.end.seconds   ? d.end.seconds   * 1000 : d.end)   : null,
-          allDay: !!d.allDay
-        };
-
-        if (chg.type === "added") {
-          // 중복 방지: 동일 id 있으면 제거 후 추가
-          const exist = calendar.getEventById(id);
-          if (exist) exist.remove();
-          calendar.addEvent(ev);
-        } else if (chg.type === "modified") {
-          const e = calendar.getEventById(id);
-          if (e) {
-            e.setProp("title", ev.title);
-            e.setDates(ev.start, ev.end, { allDay: ev.allDay });
-          } else {
-            calendar.addEvent(ev);
-          }
-        } else if (chg.type === "removed") {
-          const e = calendar.getEventById(id);
-          e && e.remove();
-        }
+      const current = teamFilterEl.value || "__ALL__";
+      teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` +
+        teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+      lastTeamOptionSig = sig;
+      // 기존 선택 유지
+      const keep = [...teamFilterEl.options].some(o => o.value === current);
+      teamFilterEl.value = keep ? current : "__ALL__";
+    }
+    function applyTeamFilter() {
+      if (!teamFilterEl) return;
+      const v = teamFilterEl.value;
+      document.querySelectorAll("#tbody tr").forEach(tr => {
+        const t = (tr.dataset.team || "").trim();
+        tr.style.display = (v === "__ALL__" || t === v) ? "" : "none";
       });
-    }, (err) => {
-      console.warn("calendar_events listen error:", err);
-    });
-}
+    }
+    teamFilterEl?.addEventListener("change", applyTeamFilter);
 
-/* ===== 로그인/권한 변화 시 달력 갱신 =====
-   이미 auth.onAuthStateChanged/refreshRole는 있으므로,
-   아래 두 군데만 추가 호출해 주면 됩니다. */
-</script>
+    /* ========= 10) 유틸 ========= */
+    function debounce(fn, wait) {
+      let t; return function () {
+        clearTimeout(t);
+        const args = arguments; t = setTimeout(function () { fn.apply(null, args); }, wait);
+      };
+    }
+  </script>
+
+  <!-- 11) 캘린더 -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+  <script>
+    /* ===== 캘린더(FullCalendar) + Firestore 연동 ===== */
+    let calendar;                  // FullCalendar 인스턴스
+    let eventsUnsub = null;        // Firestore 구독 해제 함수
+    const CAL_COL = "calendar_events";
+
+    /** FullCalendar 생성/옵션 적용 */
+    function initCalendar() {
+      const calendarEl = document.getElementById("calendar");
+      if (!calendarEl) return;
+
+      // 이미 생성되어 있으면 옵션만 갱신
+      if (calendar) {
+        calendar.setOption("editable", !!(currentUser && (isEditor || isAdmin)));
+        calendar.setOption("selectable", !!(currentUser && (isEditor || isAdmin)));
+        return;
+      }
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "dayGridMonth",
+        height: 'auto',
+        editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
+        selectable: !!(currentUser && (isEditor || isAdmin)),
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay"
+        },
+
+        // 날짜 드래그 선택 → 새 일정 추가 (권한자만)
+        select: async function (info) {
+          if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
+          const title = prompt("일정 제목을 입력하세요:");
+          if (!title) { calendar.unselect(); return; }
+          try {
+            await db.collection(CAL_COL).add({
+              title,
+              start: info.start,                     // Firestore에 Date 타입으로 저장
+              end: info.end,                         // (null 가능)
+              allDay: info.allDay,
+              createdBy: currentUser.uid,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch (e) {
+            alert("일정 추가 실패: " + (e.message || e));
+          } finally {
+            calendar.unselect();
+          }
+        },
+
+        // 이벤트 클릭 → 삭제
+        eventClick: async function (info) {
+          if (!(currentUser && (isEditor || isAdmin))) return;
+          if (!confirm("이 일정을 삭제할까요?")) return;
+          try {
+            await db.collection(CAL_COL).doc(info.event.id).delete();
+          } catch (e) {
+            alert("삭제 실패: " + (e.message || e));
+          }
+        },
+
+        // 드래그로 이동
+        eventDrop: async function (info) {
+          if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
+          try {
+            await db.collection(CAL_COL).doc(info.event.id).update({
+              start: info.event.start,
+              end: info.event.end,
+              allDay: info.event.allDay,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch (e) {
+            info.revert();
+            alert("이동 실패: " + (e.message || e));
+          }
+        },
+
+        // 리사이즈로 기간 변경
+        eventResize: async function (info) {
+          if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
+          try {
+            await db.collection(CAL_COL).doc(info.event.id).update({
+              start: info.event.start,
+              end: info.event.end,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch (e) {
+            info.revert();
+            alert("수정 실패: " + (e.message || e));
+          }
+        },
+
+        events: [] // Firestore에서 실시간으로 채움
+      });
+
+      calendar.render();
+    }
+
+    /** Firestore 실시간 구독 (캘린더와 동기화) */
+    function bindCalendarStreams() {
+      // 이전 구독 해제
+      if (eventsUnsub) { eventsUnsub(); eventsUnsub = null; }
+      if (!db) return;
+
+      eventsUnsub = db.collection(CAL_COL)
+        .orderBy("start", "asc")
+        .onSnapshot((snap) => {
+          if (!calendar) return;
+          snap.docChanges().forEach((chg) => {
+            const id = chg.doc.id;
+            const d = chg.doc.data();
+
+            // Firestore Date ↔ JS Date 자동 변환 (compat SDK는 Date로 넣으면 Date로 나옵니다)
+            const ev = {
+              id,
+              title: d.title || "(제목 없음)",
+              start: d.start ? new Date(d.start.seconds ? d.start.seconds * 1000 : d.start) : null,
+              end: d.end ? new Date(d.end.seconds ? d.end.seconds * 1000 : d.end) : null,
+              allDay: !!d.allDay
+            };
+
+            if (chg.type === "added") {
+              // 중복 방지: 동일 id 있으면 제거 후 추가
+              const exist = calendar.getEventById(id);
+              if (exist) exist.remove();
+              calendar.addEvent(ev);
+            } else if (chg.type === "modified") {
+              const e = calendar.getEventById(id);
+              if (e) {
+                e.setProp("title", ev.title);
+                e.setDates(ev.start, ev.end, { allDay: ev.allDay });
+              } else {
+                calendar.addEvent(ev);
+              }
+            } else if (chg.type === "removed") {
+              const e = calendar.getEventById(id);
+              e && e.remove();
+            }
+          });
+        }, (err) => {
+          console.warn("calendar_events listen error:", err);
+        });
+    }
+
+    /* ===== 로그인/권한 변화 시 달력 갱신 =====
+       이미 auth.onAuthStateChanged/refreshRole는 있으므로,
+       아래 두 군데만 추가 호출해 주면 됩니다. */
+  </script>
 
 </body>
+
 </html>
