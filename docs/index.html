@@ -377,7 +377,7 @@ function renderDashboard(rows){
 
   const remain = Math.max(0,totalAll-doneAll);
   const data = { labels:["완료","잔여"], datasets:[{ data:[doneAll, remain] }] };
-  const opt  = { plugins:{ legend:{ labels:{ color:"#cfe0ff" } } }, cutout:"60%", maintainAspectRatio:false, layout:{padding:0} };
+  const opt  = { plugins:{ legend:{ labels:{ color:"#cfe0ff" } } }, cutout:"100%", maintainAspectRatio:false, layout:{padding:0} };
   const ctx  = document.getElementById("overallDonut");
   if (donutChart) { donutChart.data = data; donutChart.update(); }
   else { donutChart = new Chart(ctx, { type:"doughnut", data, options: opt }); }
