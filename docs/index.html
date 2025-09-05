@@ -677,7 +677,7 @@
 
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
-        height: 'auto',
+        height: 'parent',
         editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
         selectable: !!(currentUser && (isEditor || isAdmin)),
         headerToolbar: {

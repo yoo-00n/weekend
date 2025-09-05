@@ -361,7 +361,7 @@
       grid-template-columns: 1fr 440px;
       /* 우측 폭 고정 */
       gap: 20px;
-      align-items: start;
+      align-items: stretch;
     }
 
     @media (max-width: 1100px) {
@@ -378,7 +378,9 @@
       border: 1px solid #1b2446;
       border-radius: 12px;
       padding: 16px;
+      display: flex;
     }
+    #calendar{ flex:1 1 auto; min-height: 400px;}
 
     /* 잘림/스크롤 방지: 월뷰 자동 높이 & 폰트 살짝 줄임 */
     .fc .fc-col-header-cell-cushion {
