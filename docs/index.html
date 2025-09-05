@@ -162,11 +162,12 @@
             <li>3팀 : 김국환, 노시준</li>
           </ul>
         </div>
-        <!-- 캘린더 박스 -->
-        <div style="width:420px;">
-          <div id="calendar" style="width: 500px; background: #111834; padding:20px; border-radius: 12px; margin-left: 20px;"></div>
-        </div>
+       </div>
       </div>
+        <!-- 캘린더 박스 -->
+        <aside class="calendar-box">
+          <div id="calendar"></div>
+        </aside>
     </div>
   </div>
 
@@ -715,7 +716,7 @@ function initCalendar() {
 
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
-    height: 400,
+    height: 'auto',
     editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
     selectable: !!(currentUser && (isEditor || isAdmin)),
     headerToolbar: {
