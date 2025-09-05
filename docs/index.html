@@ -162,6 +162,9 @@
             <li>3팀 : 김국환, 노시준</li>
           </ul>
         </div>
+        <!-- 캘린더 박스 -->
+        <div id="calendar" style="width: 500px; background: #111834; padding:20px; border-radius: 12px; margin-left: 20px;">
+        </div>
       </div>
     </div></div>
 
@@ -678,8 +681,22 @@ function applyTeamFilter(){
 teamFilterEl?.addEventListener("change", applyTeamFilter);
 
 /* ========= 10) 유틸 ========= */
-function debounce(fn, wait){ let t; return function(){ clearTimeout(t); const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); }; }
+function debounce(fn, wait){ let t; return function(){ clearTimeout(t); 
+const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); }; }
 </script>
 
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.calendar(calendarEl, {
+      initialView: 'dayFridMonth',
+      height : 500
+    });
+    calendar.render();
+  });
+</script>
 </body>
 </html>
