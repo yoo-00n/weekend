@@ -82,7 +82,7 @@
     .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--brand,#5aa0ff),var(--accent,#46e0b7))}
     .barlabel{
       position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:12px; 
-      color:#fff; text-shadow:0 1px 2px rgba(0m0m0m.35); pointer-events: none;}
+      color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35); pointer-events: none;}
      #overallDonut{height:200px !important; max-height:200px !important;}
   </style>
 </head>
@@ -691,8 +691,8 @@ const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); };
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.calendar(calendarEl, {
-      initialView: 'dayFridMonth',
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
       height : 500
     });
     calendar.render();
