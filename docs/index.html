@@ -685,6 +685,7 @@ function debounce(fn, wait){ let t; return function(){ clearTimeout(t);
 const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); }; }
 </script>
 
+<!-- 11) 캘린더 -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
@@ -693,7 +694,7 @@ const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); };
     var calendarEl = document.getElementById('calendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      height : 500
+      height : 200
     });
     calendar.render();
   });
