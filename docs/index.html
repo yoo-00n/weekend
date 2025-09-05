@@ -80,9 +80,10 @@
     /* 공정률 바 게이지 */
     .barwrap{position:relative;height:10px;background:rgba(255,255,255,.12);border-radius:999px;overflow:hidden}
     .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--brand,#5aa0ff),var(--accent,#46e0b7))}
-    .barlabel{position:absolute;top:-20px;right:0;font-size:12px;color:var(--muted)}
-
-        #overallDonut{height:200px !important; max-height:200px !important;}
+    .barlabel{
+      position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:12px; 
+      color:#fff; text-shadow:0 1px 2px rgba(0m0m0m.35); pointer-events: none;}
+     #overallDonut{height:200px !important; max-height:200px !important;}
   </style>
 </head>
 <body>
@@ -415,8 +416,8 @@ function renderProjects(rows){
       <td class="col-done"><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
       <td class="col-progress">
         <div class="barwrap">
-          <div class="bar" style="width:${Math.max(0,Math.min(100,pInt))}%"></div>
-          <span class="barlabel">${pInt}%</span>
+          <div class="bar" style="width:${Math.max(0,Math.min(100,pInt))}%""></div>
+          <span class="barlabel">${pInt}</span>
         </div>
       </td>
       <td class="col-delta delta ${changed?"changed":""}">${changed ? (diff>0?"+":"")+diff.toFixed(1) : "—"}</td>
