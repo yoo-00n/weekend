@@ -84,6 +84,30 @@
       position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:12px; 
       color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.35); pointer-events: none;}
      #overallDonut{height:200px !important; max-height:200px !important;}
+
+     /* 관리도구(좌) + 캘린더(우) 2단 레이아웃 */
+.tools-layout{
+  display: grid;
+  grid-template-columns: 1fr 440px;  /* 우측 폭 고정 */
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1100px){
+  .tools-layout{ grid-template-columns: 1fr; } /* 좁으면 한 줄로 */
+}
+
+/* 캘린더 카드 */
+.calendar-box{
+  background:#111834;
+  border:1px solid #1b2446;
+  border-radius:12px;
+  padding:16px;
+}
+
+/* 잘림/스크롤 방지: 월뷰 자동 높이 & 폰트 살짝 줄임 */
+.fc .fc-col-header-cell-cushion{ padding:6px 4px; }
+.fc .fc-daygrid-day-number{ font-size:12px; padding:4px; }
+.fc .fc-daygrid-event{ font-size:12px; padding:2px 6px; border-radius:6px; }
   </style>
 </head>
 <body>
@@ -130,7 +154,13 @@
     </div>
 
     <div class="card" style="margin-top:16px"><div class="pad">
-      <h2>관리 도구</h2>
+  <h2>관리 도구</h2>
+
+  <!-- ✅ 왼쪽=관리도구 / 오른쪽=캘린더 -->
+  <div class="tools-layout">
+
+    <!-- 왼쪽: 기존 관리도구 전체 -->
+    <section>
       <div class="btn-row" style="margin-bottom:10px">
         <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
         <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
@@ -138,6 +168,7 @@
         <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
         <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
       </div>
+
       <div class="row cols-2">
         <div>
           <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
@@ -154,6 +185,7 @@
           </div>
           <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
         </div>
+
         <div>
           <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
           <ul class="muted" style="margin:0 0 6px 16px;padding:0">
@@ -162,14 +194,17 @@
             <li>3팀 : 김국환, 노시준</li>
           </ul>
         </div>
-       </div>
       </div>
-        <!-- 캘린더 박스 -->
-        <aside class="calendar-box">
-          <div id="calendar"></div>
-        </aside>
-    </div>
-  </div>
+    </section>
+
+    <!-- 오른쪽: 캘린더 (반드시 tools-layout 내부의 두 번째 칸) -->
+    <aside class="calendar-box">
+      <div id="calendar"></div>
+    </aside>
+
+  </div><!-- /.tools-layout -->
+</div></div>
+
 
     <div class="card" style="margin-top:16px"><div class="pad">
       <h2>담당팀별 사업지구 현황</h2>
