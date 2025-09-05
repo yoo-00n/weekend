@@ -288,6 +288,8 @@ if (auth) {
       await refreshRole();
       setControlsEnabled();
       bindDataStreams();
+      initCalendar();
+      bindCalendarStreams();
     } else {
       userInfo.textContent = "로그인 필요";
       btnSignIn.classList.remove("hidden");
@@ -297,6 +299,8 @@ if (auth) {
       setControlsEnabled();
       clearDataStreams();
       latestProjects = []; renderProjects(latestProjects); renderDashboard(latestProjects);
+      initCalendar();
+      bindCalendarStreams();
     }
   });
 
@@ -692,34 +696,153 @@ const args=arguments; t=setTimeout(function(){ fn.apply(null,args); }, wait); };
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      height : 500,
-      editable: true,
-      selectable: true,
-      select: function(info) {
-        const title = prompt("일정 제목을 입력해주세요:");
-        if (title) {
-          calendar.addEvent({
-            title: title,
-            start: info.start,
-            end: info.end,
-            allDay: info.allDay
-          })
-        }
+/* ===== 캘린더(FullCalendar) + Firestore 연동 ===== */
+let calendar;                  // FullCalendar 인스턴스
+let eventsUnsub = null;        // Firestore 구독 해제 함수
+const CAL_COL = "calendar_events";
+
+/** FullCalendar 생성/옵션 적용 */
+function initCalendar() {
+  const calendarEl = document.getElementById("calendar");
+  if (!calendarEl) return;
+
+  // 이미 생성되어 있으면 옵션만 갱신
+  if (calendar) {
+    calendar.setOption("editable", !!(currentUser && (isEditor || isAdmin)));
+    calendar.setOption("selectable", !!(currentUser && (isEditor || isAdmin)));
+    return;
+  }
+
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: "dayGridMonth",
+    height: 600,
+    editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
+    selectable: !!(currentUser && (isEditor || isAdmin)),
+    headerToolbar: {
+      left: "prev,next today",
+      center: "title",
+      right: "dayGridMonth,timeGridWeek,timeGridDay"
+    },
+
+    // 날짜 드래그 선택 → 새 일정 추가 (권한자만)
+    select: async function(info) {
+      if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
+      const title = prompt("일정 제목을 입력하세요:");
+      if (!title) { calendar.unselect(); return; }
+      try {
+        await db.collection(CAL_COL).add({
+          title,
+          start: info.start,                     // Firestore에 Date 타입으로 저장
+          end: info.end,                         // (null 가능)
+          allDay: info.allDay,
+          createdBy: currentUser.uid,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) {
+        alert("일정 추가 실패: " + (e.message || e));
+      } finally {
         calendar.unselect();
-      },
-      eventClick: function(info) {
-        if (confirm("이 일정을 삭제할까요?")) {
-          info.event.remove();
-        }
-      },
-      events: []
-    });
-    calendar.render();
+      }
+    },
+
+    // 이벤트 클릭 → 삭제
+    eventClick: async function(info) {
+      if (!(currentUser && (isEditor || isAdmin))) return;
+      if (!confirm("이 일정을 삭제할까요?")) return;
+      try {
+        await db.collection(CAL_COL).doc(info.event.id).delete();
+      } catch (e) {
+        alert("삭제 실패: " + (e.message || e));
+      }
+    },
+
+    // 드래그로 이동
+    eventDrop: async function(info) {
+      if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
+      try {
+        await db.collection(CAL_COL).doc(info.event.id).update({
+          start: info.event.start,
+          end: info.event.end,
+          allDay: info.event.allDay,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) {
+        info.revert();
+        alert("이동 실패: " + (e.message || e));
+      }
+    },
+
+    // 리사이즈로 기간 변경
+    eventResize: async function(info) {
+      if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
+      try {
+        await db.collection(CAL_COL).doc(info.event.id).update({
+          start: info.event.start,
+          end: info.event.end,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) {
+        info.revert();
+        alert("수정 실패: " + (e.message || e));
+      }
+    },
+
+    events: [] // Firestore에서 실시간으로 채움
   });
+
+  calendar.render();
+}
+
+/** Firestore 실시간 구독 (캘린더와 동기화) */
+function bindCalendarStreams() {
+  // 이전 구독 해제
+  if (eventsUnsub) { eventsUnsub(); eventsUnsub = null; }
+  if (!db) return;
+
+  eventsUnsub = db.collection(CAL_COL)
+    .orderBy("start", "asc")
+    .onSnapshot((snap) => {
+      if (!calendar) return;
+      snap.docChanges().forEach((chg) => {
+        const id = chg.doc.id;
+        const d  = chg.doc.data();
+
+        // Firestore Date ↔ JS Date 자동 변환 (compat SDK는 Date로 넣으면 Date로 나옵니다)
+        const ev = {
+          id,
+          title: d.title || "(제목 없음)",
+          start: d.start ? new Date(d.start.seconds ? d.start.seconds * 1000 : d.start) : null,
+          end:   d.end   ? new Date(d.end.seconds   ? d.end.seconds   * 1000 : d.end)   : null,
+          allDay: !!d.allDay
+        };
+
+        if (chg.type === "added") {
+          // 중복 방지: 동일 id 있으면 제거 후 추가
+          const exist = calendar.getEventById(id);
+          if (exist) exist.remove();
+          calendar.addEvent(ev);
+        } else if (chg.type === "modified") {
+          const e = calendar.getEventById(id);
+          if (e) {
+            e.setProp("title", ev.title);
+            e.setDates(ev.start, ev.end, { allDay: ev.allDay });
+          } else {
+            calendar.addEvent(ev);
+          }
+        } else if (chg.type === "removed") {
+          const e = calendar.getEventById(id);
+          e && e.remove();
+        }
+      });
+    }, (err) => {
+      console.warn("calendar_events listen error:", err);
+    });
+}
+
+/* ===== 로그인/권한 변화 시 달력 갱신 =====
+   이미 auth.onAuthStateChanged/refreshRole는 있으므로,
+   아래 두 군데만 추가 호출해 주면 됩니다. */
 </script>
+
 </body>
 </html>
