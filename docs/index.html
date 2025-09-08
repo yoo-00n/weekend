@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -14,9 +13,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
-  <link rel = "stylesheet" href = "style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
   <header>
     <div class="wrap flex" style="padding:12px 20px">
@@ -38,7 +36,9 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
+          <div class="kpi">
+            <span id="kpiProgress" class="big">0%</span>
+            <span class="sub" id="kpiParcels">0 / 0 필지</span>
           </div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
@@ -73,10 +73,8 @@
       <div class="pad">
         <h2>관리 도구</h2>
 
-        <!-- ✅ 왼쪽=관리도구 / 오른쪽=캘린더 -->
         <div class="tools-layout">
-
-          <!-- 왼쪽: 기존 관리도구 전체 -->
+          <!-- 왼쪽 -->
           <section>
             <div class="btn-row" style="margin-bottom:10px">
               <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
@@ -121,15 +119,13 @@
             </div>
           </section>
 
-          <!-- 오른쪽: 캘린더 (반드시 tools-layout 내부의 두 번째 칸) -->
+          <!-- 오른쪽: 캘린더 -->
           <aside class="calendar-box">
             <div id="calendar"></div>
           </aside>
-
-        </div><!-- /.tools-layout -->
+        </div>
       </div>
     </div>
-
 
     <div class="card" style="margin-top:16px">
       <div class="pad">
@@ -167,7 +163,6 @@
         <div id="editors"></div>
       </div>
     </div>
-
   </main>
 
   <script>
@@ -225,8 +220,8 @@
           );
           renderProjects(latestProjects);
           renderDashboard(latestProjects);
-          buildTeamFilter(latestProjects);    // ★ 팀 필터 옵션 구성/유지
-          applyTeamFilter();                  // ★ 선택값에 따라 행 표시
+          buildTeamFilter(latestProjects);
+          applyTeamFilter();
         }, (err) => {
           console.warn("projects listen error:", err.code || err.message);
         })
@@ -337,7 +332,7 @@
       const p = (!total || total <= 0) ? 0 : (completed / total * 100);
       return Math.round(p * 10) / 10;
     }
-    function pctInt(completed, total) {   // 정수 표시용
+    function pctInt(completed, total) {
       const p = (!total || total <= 0) ? 0 : (completed / total * 100);
       return Math.round(p);
     }
@@ -372,52 +367,83 @@
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week) || 0;
-        const pNow1 = pct1(comp, total);       // 1자리 소수 (Δ 계산/다운로드용)
+        const pNow1 = pct1(comp, total);
         const pPrev = pct1(last, total);
         const diff = Math.round((pNow1 - pPrev) * 10) / 10;
         const changed = Math.abs(diff) > 0.0001;
-        const pInt = pctInt(comp, total);      // ★ 정수 표시 + 게이지
+        const pInt = pctInt(comp, total);
 
         const tr = document.createElement("tr");
         tr.dataset.team = r.team || "";
         tr.innerHTML = `
-      <td class="col-team">${esc(r.team || "")}</td>
-      <td class="col-name">
-        ${esc(r.name || "")}
-        ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
-      </td>
-      <td class="col-total"><input type="number" class="in-total"     data-id="${r.id}" value="${total}" ${inputEditable()} /></td>
-      <td class="col-done"><input type="number" class="in-completed" data-id="${r.id}" value="${comp}"  ${inputEditable()} /></td>
-      <td class="col-progress">
-        <div class="barwrap">
-          <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%""></div>
-          <span class="barlabel">${pInt}</span>
-        </div>
-      </td>
-      <td class="col-delta delta ${changed ? "changed" : ""}">${changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "—"}</td>
-      <td class="col-handover"><textarea class="in-lx"   data-id="${r.id}" ${inputEditable()}>${esc(r.lxNotes || "")}</textarea></td>
-      <td class="col-feedback"><textarea class="in-auth" data-id="${r.id}" ${inputEditable()}>${esc(r.authorityFeedback || "")}</textarea></td>
-    `;
+          <td class="col-team">${esc(r.team || "")}</td>
+          <td class="col-name">
+            ${esc(r.name || "")}
+            ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
+          </td>
+          <td class="col-total">
+            <input type="number" class="in-total" data-id="${r.id}" value="${total}" ${isAdmin ? "" : "disabled"} />
+          </td>
+          <td class="col-done">
+            <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${ (isAdmin || role==="lx") ? "" : "disabled" } />
+            ${role==="lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률 기록(%)으로 저장됩니다</div>` : ""}
+          </td>
+          <td class="col-progress">
+            <div class="barwrap">
+              <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
+              <span class="barlabel">${pInt}%</span>
+            </div>
+          </td>
+          <td class="col-delta delta ${changed ? "changed" : ""}">${changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "—"}</td>
+          <td class="col-handover">
+            <textarea class="in-lx" data-id="${r.id}" ${ (isAdmin || role==="lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
+          </td>
+          <td class="col-feedback">
+            <textarea class="in-auth" data-id="${r.id}" ${isAdmin ? "" : "disabled"}>${esc(r.authorityFeedback || "")}</textarea>
+          </td>
+        `;
         tbody.appendChild(tr);
       });
 
       // 입력 바인딩
+      // (1) 총필지: 관리자만 루트 업데이트
       tbody.querySelectorAll(".in-total").forEach(el => {
-        el.addEventListener("input", debounce(e => saveField(e.target, "total", toNum(e.target.value)), 500));
+        if (!isAdmin) return;
+        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "total", toNum(e.target.value)), 500));
         el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
-      });
-      tbody.querySelectorAll(".in-completed").forEach(el => {
-        el.addEventListener("input", debounce(e => saveField(e.target, "completed", toNum(e.target.value)), 500));
-        el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
-      });
-      tbody.querySelectorAll(".in-lx").forEach(el => {
-        el.addEventListener("input", debounce(e => saveField(e.target, "lxNotes", e.target.value), 700));
-      });
-      tbody.querySelectorAll(".in-auth").forEach(el => {
-        el.addEventListener("input", debounce(e => saveField(e.target, "authorityFeedback", e.target.value), 700));
       });
 
-      // 관리자: 삭제 버튼 바인딩
+      // (2) 완료(이번 주)
+      tbody.querySelectorAll(".in-completed").forEach(el => {
+        if (isAdmin) {
+          // 관리자: 루트의 completed 직접 업데이트
+          el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "completed", toNum(e.target.value)), 500));
+          el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
+        } else if (role === "lx") {
+          // LX: 서브컬렉션에 progress(%) 기록
+          el.addEventListener("input", debounce(e => {
+            const tr = e.target.closest("tr");
+            const total = toNum(tr.querySelector(".in-total")?.value);
+            const completedCount = toNum(e.target.value);
+            const percent = (!total || total <= 0) ? 0 : (completedCount / total * 100);
+            saveProgressPercent(e.target.getAttribute("data-id"), Math.max(0, Math.min(100, Math.round(percent))));
+          }, 600));
+        }
+      });
+
+      // (3) LX 전달사항: 규칙 키에 맞춰 lx_note 로 저장
+      tbody.querySelectorAll(".in-lx").forEach(el => {
+        if (!(isAdmin || role==="lx")) return;
+        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "lx_note", e.target.value), 700));
+      });
+
+      // (4) 소관청 피드백: 관리자만
+      tbody.querySelectorAll(".in-auth").forEach(el => {
+        if (!isAdmin) return;
+        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "authorityFeedback", e.target.value), 700));
+      });
+
+      // 관리자: 삭제 버튼
       if (isAdmin) {
         tbody.querySelectorAll("[data-del]").forEach(btn => {
           btn.addEventListener("click", async (e) => {
@@ -445,21 +471,40 @@
       if (label) label.textContent = p + "%";
     }
 
-    function inputEditable() { return (auth && currentUser && (isEditor || isAdmin)) ? "" : "disabled"; }
     function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
     function esc(s) { return String(s).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])); }
 
-    async function saveField(el, field, value) {
+    // === (프런트) 루트 문서 허용 키 업데이트(관리자 / 또는 규칙 허용 키) ===
+    async function saveFieldRoot(el, field, value) {
       if (!(auth && currentUser && db)) return;
       try {
         const id = el.getAttribute("data-id");
-        await db.collection("projects").doc(id).update({
-          [field]: value,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const payload = (field === "lx_note")
+          ? { lx_note: String(value), updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid }
+          : { [field]: value,        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid };
+
+        await db.collection("projects").doc(id).update(payload);
       } catch (e) {
         if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
         else alert("저장 실패: " + e.message);
+      }
+    }
+
+    // === (프런트) 서브컬렉션에 progress(%) 기록(LX 전용) ===
+    async function saveProgressPercent(projectId, percentInt) {
+      if (!(auth && currentUser && db)) return;
+      try {
+        const p = Number(percentInt);
+        if (!Number.isFinite(p) || p < 0 || p > 100) throw new Error("진행률은 0~100 사이 숫자여야 합니다.");
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        await db.collection("projects").doc(projectId).collection("progress").doc(today).set({
+          progress: p,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid
+        }, { merge: true });
+        console.log("[OK] progress saved", projectId, p);
+      } catch (e) {
+        alert("진행률 저장 실패: " + (e.message || e));
       }
     }
 
@@ -472,7 +517,10 @@
         const batch = db.batch();
         snap.forEach(doc => {
           const d = doc.data();
-          batch.update(doc.ref, { completed_last_week: Number(d.completed) || 0, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          batch.update(doc.ref, {
+            completed_last_week: Number(d.completed) || 0,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
         });
         await batch.commit(); alert("새 주 시작 완료");
       } catch (e) { alert(e.message); }
@@ -488,7 +536,7 @@
       try {
         await db.collection("projects").add({
           name, team, total, completed, completed_last_week: completed,
-          lxNotes: "", authorityFeedback: "",
+          lx_note: "", authorityFeedback: "",
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         document.getElementById("inName").value = "";
@@ -512,10 +560,16 @@
         const col = db.collection("projects");
         samples.forEach(s => {
           const ref = col.doc();
-          batch.set(ref, { ...s, completed_last_week: s.completed, lxNotes: "", authorityFeedback: "", updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          batch.set(ref, {
+            ...s,
+            completed_last_week: s.completed,
+            lx_note: "",
+            authorityFeedback: "",
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
         });
         await batch.commit(); alert("샘플 데이터 추가 완료");
-      } catch (e) { alert(e.message); }
+      } catch (e) { alert("추가 실패: " + e.message); }
     });
 
     document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
@@ -547,12 +601,12 @@
 
     /* ========= 7) CSV ========= */
     function exportCSV(rows) {
-      const headers = ["team", "name", "total", "completed", "completed_last_week", "progress_now", "progress_prev", "delta_pp", "lxNotes", "authorityFeedback"];
+      const headers = ["team", "name", "total", "completed", "completed_last_week", "progress_now", "progress_prev", "delta_pp", "lx_note", "authorityFeedback"];
       const lines = [headers.join(",")];
       rows.forEach(r => {
         const total = Number(r.total) || 0, comp = Number(r.completed) || 0, last = Number(r.completed_last_week) || 0;
         const pNow = pct1(comp, total), pPrev = pct1(last, total), d = (pNow - pPrev).toFixed(1);
-        const vals = [r.team || "", r.name || "", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lxNotes || ""), quote(r.authorityFeedback || "")];
+        const vals = [r.team || "", r.name || "", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")];
         lines.push(vals.join(","));
       });
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
@@ -631,13 +685,12 @@
       if (!teamFilterEl) return;
       const teams = Array.from(new Set(rows.map(r => (r.team || "").trim()).filter(Boolean))).sort();
       const sig = teams.join("|");
-      if (sig === lastTeamOptionSig) return; // 옵션 변동 없으면 건너뜀
+      if (sig === lastTeamOptionSig) return;
 
       const current = teamFilterEl.value || "__ALL__";
       teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` +
         teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
       lastTeamOptionSig = sig;
-      // 기존 선택 유지
       const keep = [...teamFilterEl.options].some(o => o.value === current);
       teamFilterEl.value = keep ? current : "__ALL__";
     }
@@ -666,16 +719,14 @@
 
   <script>
     /* ===== 캘린더(FullCalendar) + Firestore 연동 ===== */
-    let calendar;                  // FullCalendar 인스턴스
-    let eventsUnsub = null;        // Firestore 구독 해제 함수
+    let calendar;
+    let eventsUnsub = null;
     const CAL_COL = "calendar_events";
 
-    /** FullCalendar 생성/옵션 적용 */
     function initCalendar() {
       const calendarEl = document.getElementById("calendar");
       if (!calendarEl) return;
 
-      // 이미 생성되어 있으면 옵션만 갱신
       if (calendar) {
         calendar.setOption("editable", !!(currentUser && (isEditor || isAdmin)));
         calendar.setOption("selectable", !!(currentUser && (isEditor || isAdmin)));
@@ -685,7 +736,7 @@
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         height: 'parent',
-        editable: !!(currentUser && (isEditor || isAdmin)), // 편집권한 있는 사용자만
+        editable: !!(currentUser && (isEditor || isAdmin)),
         selectable: !!(currentUser && (isEditor || isAdmin)),
         headerToolbar: {
           left: "prev,next today",
@@ -693,7 +744,6 @@
           right: "dayGridMonth,timeGridWeek,timeGridDay"
         },
 
-        // 날짜 드래그 선택 → 새 일정 추가 (권한자만)
         select: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
           const title = prompt("일정 제목을 입력하세요:");
@@ -701,8 +751,8 @@
           try {
             await db.collection(CAL_COL).add({
               title,
-              start: info.start,                     // Firestore에 Date 타입으로 저장
-              end: info.end,                         // (null 가능)
+              start: info.start,
+              end: info.end,
               allDay: info.allDay,
               createdBy: currentUser.uid,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -714,7 +764,6 @@
           }
         },
 
-        // 이벤트 클릭 → 삭제
         eventClick: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) return;
           if (!confirm("이 일정을 삭제할까요?")) return;
@@ -725,7 +774,6 @@
           }
         },
 
-        // 드래그로 이동
         eventDrop: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
           try {
@@ -741,7 +789,6 @@
           }
         },
 
-        // 리사이즈로 기간 변경
         eventResize: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
           try {
@@ -756,15 +803,13 @@
           }
         },
 
-        events: [] // Firestore에서 실시간으로 채움
+        events: []
       });
 
       calendar.render();
     }
 
-    /** Firestore 실시간 구독 (캘린더와 동기화) */
     function bindCalendarStreams() {
-      // 이전 구독 해제
       if (eventsUnsub) { eventsUnsub(); eventsUnsub = null; }
       if (!db) return;
 
@@ -776,7 +821,6 @@
             const id = chg.doc.id;
             const d = chg.doc.data();
 
-            // Firestore Date ↔ JS Date 자동 변환 (compat SDK는 Date로 넣으면 Date로 나옵니다)
             const ev = {
               id,
               title: d.title || "(제목 없음)",
@@ -786,7 +830,6 @@
             };
 
             if (chg.type === "added") {
-              // 중복 방지: 동일 id 있으면 제거 후 추가
               const exist = calendar.getEventById(id);
               if (exist) exist.remove();
               calendar.addEvent(ev);
@@ -807,12 +850,6 @@
           console.warn("calendar_events listen error:", err);
         });
     }
-
-    /* ===== 로그인/권한 변화 시 달력 갱신 =====
-       이미 auth.onAuthStateChanged/refreshRole는 있으므로,
-       아래 두 군데만 추가 호출해 주면 됩니다. */
   </script>
-
 </body>
-
 </html>
