@@ -36,10 +36,7 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi">
-            <span id="kpiProgress" class="big">0%</span>
-            <span class="sub" id="kpiParcels">0 / 0 필지</span>
-          </div>
+          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
       </div>
@@ -74,7 +71,6 @@
         <h2>관리 도구</h2>
 
         <div class="tools-layout">
-          <!-- 왼쪽 -->
           <section>
             <div class="btn-row" style="margin-bottom:10px">
               <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
@@ -119,7 +115,6 @@
             </div>
           </section>
 
-          <!-- 오른쪽: 캘린더 -->
           <aside class="calendar-box">
             <div id="calendar"></div>
           </aside>
@@ -267,7 +262,7 @@
       btnSignIn.addEventListener("click", async () => {
         try {
           const username = prompt("아이디를 입력하세요 (예: ADMIN, LX, NAMWON)");
-          if (!username) return;
+        if (!username) return;
           const password = prompt("비밀번호를 입력하세요");
           if (!password) return;
           const email = `${username.trim()}@${USER_DOMAIN}`;
@@ -351,9 +346,15 @@
       if (donutChart) { donutChart.data = data; donutChart.update(); }
       else { donutChart = new Chart(ctx, { type: "doughnut", data, options: opt }); }
 
-      const withPct = rows.map(r => ({ ...r, p: pct1(Number(r.completed) || 0, Number(r.total) || 0) }))
-        .filter(r => (Number(r.total) || 0) > 0)
-        .sort((a, b) => b.p - a.p);
+      const withPct = rows.map(r => {
+        const p = (typeof r.progress === "number" && isFinite(r.progress))
+          ? r.progress
+          : pct1(Number(r.completed) || 0, Number(r.total) || 0);
+        return { ...r, p };
+      })
+      .filter(r => (Number(r.total) || 0) > 0)
+      .sort((a, b) => b.p - a.p);
+
       const top = withPct.slice(0, 3);
       const bottom = withPct.slice(-3).reverse();
       top3El.innerHTML = top.map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
@@ -367,11 +368,13 @@
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week) || 0;
-        const pNow1 = pct1(comp, total);
+
+        const pNowFromProgress = (typeof r.progress === "number" && isFinite(r.progress)) ? r.progress : null;
+        const pNow1 = (pNowFromProgress !== null) ? pNowFromProgress : pct1(comp, total);
         const pPrev = pct1(last, total);
         const diff = Math.round((pNow1 - pPrev) * 10) / 10;
         const changed = Math.abs(diff) > 0.0001;
-        const pInt = pctInt(comp, total);
+        const pInt = Math.round(pNow1);
 
         const tr = document.createElement("tr");
         tr.dataset.team = r.team || "";
@@ -386,7 +389,7 @@
           </td>
           <td class="col-done">
             <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${ (isAdmin || role==="lx") ? "" : "disabled" } />
-            ${role==="lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률 기록(%)으로 저장됩니다</div>` : ""}
+            ${role==="lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률(%)로 저장·표시됩니다</div>` : ""}
           </td>
           <td class="col-progress">
             <div class="barwrap">
@@ -406,21 +409,15 @@
       });
 
       // 입력 바인딩
-      // (1) 총필지: 관리자만 루트 업데이트
       tbody.querySelectorAll(".in-total").forEach(el => {
         if (!isAdmin) return;
         el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "total", toNum(e.target.value)), 500));
-        el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
       });
 
-      // (2) 완료(이번 주)
       tbody.querySelectorAll(".in-completed").forEach(el => {
         if (isAdmin) {
-          // 관리자: 루트의 completed 직접 업데이트
           el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "completed", toNum(e.target.value)), 500));
-          el.addEventListener("input", debounce(() => { refreshBarsForRow(el.closest("tr")); }, 520));
         } else if (role === "lx") {
-          // LX: 서브컬렉션에 progress(%) 기록
           el.addEventListener("input", debounce(e => {
             const tr = e.target.closest("tr");
             const total = toNum(tr.querySelector(".in-total")?.value);
@@ -431,19 +428,16 @@
         }
       });
 
-      // (3) LX 전달사항: 규칙 키에 맞춰 lx_note 로 저장
       tbody.querySelectorAll(".in-lx").forEach(el => {
         if (!(isAdmin || role==="lx")) return;
         el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "lx_note", e.target.value), 700));
       });
 
-      // (4) 소관청 피드백: 관리자만
       tbody.querySelectorAll(".in-auth").forEach(el => {
         if (!isAdmin) return;
         el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "authorityFeedback", e.target.value), 700));
       });
 
-      // 관리자: 삭제 버튼
       if (isAdmin) {
         tbody.querySelectorAll("[data-del]").forEach(btn => {
           btn.addEventListener("click", async (e) => {
@@ -460,21 +454,10 @@
       }
     }
 
-    function refreshBarsForRow(tr) {
-      if (!tr) return;
-      const total = toNum(tr.querySelector(".in-total")?.value);
-      const comp = toNum(tr.querySelector(".in-completed")?.value);
-      const p = pctInt(comp, total);
-      const bar = tr.querySelector(".bar");
-      const label = tr.querySelector(".barlabel");
-      if (bar) bar.style.width = Math.max(0, Math.min(100, p)) + "%";
-      if (label) label.textContent = p + "%";
-    }
-
     function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
     function esc(s) { return String(s).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])); }
 
-    // === (프런트) 루트 문서 허용 키 업데이트(관리자 / 또는 규칙 허용 키) ===
+    // === 루트 문서 허용 키 업데이트 ===
     async function saveFieldRoot(el, field, value) {
       if (!(auth && currentUser && db)) return;
       try {
@@ -482,7 +465,6 @@
         const payload = (field === "lx_note")
           ? { lx_note: String(value), updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid }
           : { [field]: value,        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid };
-
         await db.collection("projects").doc(id).update(payload);
       } catch (e) {
         if (e.code === "permission-denied") alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
@@ -490,18 +472,28 @@
       }
     }
 
-    // === (프런트) 서브컬렉션에 progress(%) 기록(LX 전용) ===
+    // === 진행률(%) 로그 + 루트 progress 동시 갱신(LX 전용) ===
     async function saveProgressPercent(projectId, percentInt) {
       if (!(auth && currentUser && db)) return;
       try {
         const p = Number(percentInt);
         if (!Number.isFinite(p) || p < 0 || p > 100) throw new Error("진행률은 0~100 사이 숫자여야 합니다.");
         const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+        // 1) 서브컬렉션 로그
         await db.collection("projects").doc(projectId).collection("progress").doc(today).set({
           progress: p,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdBy: currentUser.uid
         }, { merge: true });
+
+        // 2) 루트 표시용(progress) 동시 업데이트 → 실시간 반영
+        await db.collection("projects").doc(projectId).update({
+          progress: p,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid
+        });
+
         console.log("[OK] progress saved", projectId, p);
       } catch (e) {
         alert("진행률 저장 실패: " + (e.message || e));
@@ -584,7 +576,6 @@
       } catch (e) { alert(e.message); }
     });
 
-    /* 관리자: 전체 삭제 */
     btnDeleteAll?.addEventListener("click", async () => {
       if (!isAdmin) return alert("관리자만 가능합니다.");
       if (!confirm("모든 사업지구 문서를 삭제할까요? (되돌릴 수 없음)")) return;
@@ -605,7 +596,9 @@
       const lines = [headers.join(",")];
       rows.forEach(r => {
         const total = Number(r.total) || 0, comp = Number(r.completed) || 0, last = Number(r.completed_last_week) || 0;
-        const pNow = pct1(comp, total), pPrev = pct1(last, total), d = (pNow - pPrev).toFixed(1);
+        const pNow = (typeof r.progress === "number" && isFinite(r.progress)) ? r.progress : pct1(comp, total);
+        const pPrev = pct1(last, total);
+        const d = (pNow - pPrev).toFixed(1);
         const vals = [r.team || "", r.name || "", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")];
         lines.push(vals.join(","));
       });
@@ -686,7 +679,6 @@
       const teams = Array.from(new Set(rows.map(r => (r.team || "").trim()).filter(Boolean))).sort();
       const sig = teams.join("|");
       if (sig === lastTeamOptionSig) return;
-
       const current = teamFilterEl.value || "__ALL__";
       teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` +
         teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
