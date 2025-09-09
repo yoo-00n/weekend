@@ -504,63 +504,63 @@
       }
     }
 
-    // 진행률(%) 로그 + 루트 progress 동시 갱신(LX 전용)
-    async function saveProgressPercent(projectId, percentInt) {
+    // LX가 '완료 개수'와 '진행률(%)'을 함께 저장
+    async function saveCompletedAndProgress(projectId, completedCount, percentInt) {
       if (!(auth && currentUser && db)) return;
+
+      const done = Number(completedCount);
       const p = Number(percentInt);
+      if (!Number.isFinite(done) || done < 0) { alert("완료(이번 주)는 0 이상 숫자여야 합니다."); return; }
       if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
+
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const projRef = db.collection("projects").doc(projectId);
 
-      // LX가 '완료 개수'와 '진행률(%)'을 함께 저장
-      async function saveCompletedAndProgress(projectId, completedCount, percentInt) {
-        if (!(auth && currentUser && db)) return;
-
-        const done = Number(completedCount);
-        const p = Number(percentInt);
-        if (!Number.isFinite(done) || done < 0) {
-          alert("완료(이번 주)는 0 이상 숫자여야 합니다."); return;
-        }
-        if (!Number.isFinite(p) || p < 0 || p > 100) {
-          alert("진행률은 0~100 사이 숫자여야 합니다."); return;
-        }
-
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        const projRef = db.collection("projects").doc(projectId);
-
-        // 1) 진행률 로그(서브컬렉션)
-        await safeSet(projRef.collection("progress").doc(today), {
-          progress: p,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          createdBy: currentUser.uid
-        }, { merge: true });
-
-        // 2) 루트 문서에 완료 개수 + 퍼센트 동시 반영
-        await safeUpdate(projRef, {
-          completed: done,
-          progress: p,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedBy: currentUser.uid
-        });
-
-        console.log("[OK] completed & progress saved", projectId, done, p);
-      }
-
-
-      // 1) 서브컬렉션(progress/날짜) 로그
-      await safeSet(db.collection("projects").doc(projectId).collection("progress").doc(today), {
+      // 1) 진행률 로그(서브컬렉션)
+      await safeSet(projRef.collection("progress").doc(today), {
         progress: p,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdBy: currentUser.uid
       }, { merge: true });
 
-      // 2) 루트 progress (표시에 사용)
-      await safeUpdate(db.collection("projects").doc(projectId), {
+      // 2) 루트 문서에 완료 개수 + 퍼센트 동시 반영
+      await safeUpdate(projRef, {
+        completed: done,
         progress: p,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: currentUser.uid
       });
+
+      console.log("[OK] completed & progress saved", projectId, done, p);
+    }
+
+    // 진행률(%)만 저장(퍼센트만 갱신할 때 사용)
+    async function saveProgressPercent(projectId, percentInt) {
+      if (!(auth && currentUser && db)) return;
+
+      const p = Number(percentInt);
+      if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
+
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const projRef = db.collection("projects").doc(projectId);
+
+      // 1) 진행률 로그(서브컬렉션)
+      await safeSet(projRef.collection("progress").doc(today), {
+        progress: p,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: currentUser.uid
+      }, { merge: true });
+
+      // 2) 루트 progress 갱신
+      await safeUpdate(projRef, {
+        progress: p,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: currentUser.uid
+      });
+
       console.log("[OK] progress saved", projectId, p);
     }
+
 
     /* ========= 6) 버튼들 ========= */
     document.getElementById("btnNewWeek")?.addEventListener("click", async () => {
