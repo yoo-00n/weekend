@@ -427,24 +427,25 @@
       });
 
       // 입력 바인딩
-      tbody.querySelectorAll(".in-total").forEach(el => {
-        if (!isAdmin) return;
-        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "total", toNum(e.target.value)), 500));
-      });
-
       tbody.querySelectorAll(".in-completed").forEach(el => {
         if (isAdmin) {
-          el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "completed", toNum(e.target.value)), 500));
+          el.addEventListener("input", debounce(e => {
+            saveFieldRoot(e.target, "completed", toNum(e.target.value));
+          }, 500));
         } else if (role === "lx") {
           el.addEventListener("input", debounce(e => {
             const tr = e.target.closest("tr");
             const total = toNum(tr.querySelector(".in-total")?.value);
             const completedCount = toNum(e.target.value);
             const percent = (!total || total <= 0) ? 0 : (completedCount / total * 100);
-            saveProgressPercent(e.target.getAttribute("data-id"), Math.max(0, Math.min(100, Math.round(percent))));
+            const pInt = Math.max(0, Math.min(100, Math.round(percent))); // ← 오타 수정
+            const projId = e.target.getAttribute("data-id");
+            // 완료 개수 + 퍼센트 동시 저장
+            saveCompletedAndProgress(projId, completedCount, pInt);
           }, 600));
         }
       });
+
 
       tbody.querySelectorAll(".in-lx").forEach(el => {
         if (!(isAdmin || role === "lx")) return;
