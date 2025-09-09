@@ -63,7 +63,6 @@
           <div class="pad">
             <h2>NOTICE</h2>
             <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
-            <div class="footer">※ 관리자만 사업지구 추가/삭제 가능</div>
           </div>
         </div>
       </div>
@@ -98,6 +97,8 @@
                   <button id="btnAddProject" class="btn" disabled>추가</button>
                 </div>
                 <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
+                <div class="footer">※ lx - 공정률, 일정 편집 가능</div>
+                <div class="footer">※ namwon - 일정 편집 가능</div>
               </div>
 
               <div>
@@ -628,7 +629,7 @@
     document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
     document.getElementById("btnRequestEdit")?.addEventListener("click", async () => {
       if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
-      const note = prompt("요청 사유를 입력해 주세요 (팀/업무 등)");
+      const note = prompt("요청 사유를 입력해 주세요 (lx 김형윤, 남원 ㅇㅇㅇ)");
       try {
         await db.collection("edit_requests").doc(currentUser.uid).set({
           uid: currentUser.uid, note: note || "", createdAt: firebase.firestore.FieldValue.serverTimestamp()
