@@ -409,7 +409,6 @@
           </td>
           <td class="col-done">
             <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${(isAdmin || role === "lx") ? "" : "disabled"} />
-            ${role === "lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률(%)로 저장·표시됩니다</div>` : ""}
           </td>
           <td class="col-progress">
             <div class="barwrap"><div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
