@@ -164,6 +164,45 @@
     </div>
   </main>
 
+  <!-- 도넛 차트 옆 배너 -->
+<a href="https://yoo-00n.github.io/JAJOSA/" target="_blank" class="floating-banner">
+  <img src="https://via.placeholder.com/120x120.png?text=Beta" alt="경계협의서 Beta">
+  <div class="banner-text">경계협의서 Beta</div>
+</a>
+
+<style>
+/* 배너 스타일 */
+.floating-banner {
+  position: fixed;
+  top: 180px;       /* 도넛 차트 상단 맞춤 */
+  left: 40px;       /* 도넛 왼쪽 여백 안쪽 */
+  z-index: 1000;    /* 항상 위에 보이게 */
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.floating-banner img {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+
+.floating-banner img:hover {
+  transform: scale(1.08);
+}
+
+.floating-banner .banner-text {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8eefb; /* 대시보드 색상과 통일 */
+}
+</style>
+
+
   <script>
     /* ========= 1) Firebase 설정 ========= */
     const firebaseConfig = {
