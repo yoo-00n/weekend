@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -15,6 +16,7 @@
 
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <header>
     <div class="wrap flex" style="padding:12px 20px">
@@ -36,7 +38,8 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
+          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
+          </div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
       </div>
@@ -175,7 +178,7 @@
 
     /* ========= 2) 초기화 ========= */
     const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-    const db  = firebase.firestore();
+    const db = firebase.firestore();
     const auth = firebase.auth();
 
     // KPI 문서 ref (게이지용)
@@ -186,7 +189,7 @@
     let currentUser = null;
     let role = null;         // "admin" | "lx" | "namwon" | null
     let isEditor = false;    // (role === "admin" || role === "lx")
-    let isAdmin  = false;
+    let isAdmin = false;
 
     /* ========= 3) 인증 ========= */
     const btnSignIn = document.getElementById("btnSignIn");
@@ -229,7 +232,7 @@
             return;
           }
           const s = snap.data() || {};
-          updateGauge(Number(s.done)||0, Number(s.total)||0, Number(s.weekComplete)||0);
+          updateGauge(Number(s.done) || 0, Number(s.total) || 0, Number(s.weekComplete) || 0);
         }, (err) => console.warn("stats listen error:", err.code || err.message))
       );
 
@@ -354,8 +357,8 @@
           : pct1(Number(r.completed) || 0, Number(r.total) || 0);
         return { ...r, p };
       })
-      .filter(r => (Number(r.total) || 0) > 0)
-      .sort((a, b) => b.p - a.p);
+        .filter(r => (Number(r.total) || 0) > 0)
+        .sort((a, b) => b.p - a.p);
 
       const top = withPct.slice(0, 3);
       const bottom = withPct.slice(-3).reverse();
@@ -365,7 +368,7 @@
 
     async function recomputeAndPushStats(rows) {
       const totalAll = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
-      const doneAll  = rows.reduce((s, r) => s + (Number(r.completed) || 0), 0);
+      const doneAll = rows.reduce((s, r) => s + (Number(r.completed) || 0), 0);
       try {
         await safeSet(statsRef, {
           total: totalAll,
@@ -405,8 +408,8 @@
             <input type="number" class="in-total" data-id="${r.id}" value="${total}" ${isAdmin ? "" : "disabled"} />
           </td>
           <td class="col-done">
-            <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${ (isAdmin || role==="lx") ? "" : "disabled" } />
-            ${role==="lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률(%)로 저장·표시됩니다</div>` : ""}
+            <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${(isAdmin || role === "lx") ? "" : "disabled"} />
+            ${role === "lx" && !isAdmin ? `<div class="muted" style="font-size:11px;margin-top:4px">※ LX 입력은 진행률(%)로 저장·표시됩니다</div>` : ""}
           </td>
           <td class="col-progress">
             <div class="barwrap"><div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
@@ -414,7 +417,7 @@
           </td>
           <td class="col-delta delta ${changed ? "changed" : ""}">${changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "—"}</td>
           <td class="col-handover">
-            <textarea class="in-lx" data-id="${r.id}" ${ (isAdmin || role==="lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
+            <textarea class="in-lx" data-id="${r.id}" ${(isAdmin || role === "lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
           </td>
           <td class="col-feedback">
             <textarea class="in-auth" data-id="${r.id}" ${isAdmin ? "" : "disabled"}>${esc(r.authorityFeedback || "")}</textarea>
@@ -444,7 +447,7 @@
       });
 
       tbody.querySelectorAll(".in-lx").forEach(el => {
-        if (!(isAdmin || role==="lx")) return;
+        if (!(isAdmin || role === "lx")) return;
         el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "lx_note", e.target.value), 700));
       });
 
@@ -470,7 +473,7 @@
     function esc(s) { return String(s).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])); }
 
     // 안전 저장 유틸
-    async function safeSet(ref, data, opt={merge:true}) {
+    async function safeSet(ref, data, opt = { merge: true }) {
       console.log('[WRITE:set]', ref.path, data);
       try { await ref.set(data, opt); console.log('[OK:set]', ref.path); }
       catch (e) { console.error('[FAIL:set]', ref.path, data, e.code, e.message); throw e; }
@@ -506,6 +509,41 @@
       const p = Number(percentInt);
       if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+      // LX가 '완료 개수'와 '진행률(%)'을 함께 저장
+      async function saveCompletedAndProgress(projectId, completedCount, percentInt) {
+        if (!(auth && currentUser && db)) return;
+
+        const done = Number(completedCount);
+        const p = Number(percentInt);
+        if (!Number.isFinite(done) || done < 0) {
+          alert("완료(이번 주)는 0 이상 숫자여야 합니다."); return;
+        }
+        if (!Number.isFinite(p) || p < 0 || p > 100) {
+          alert("진행률은 0~100 사이 숫자여야 합니다."); return;
+        }
+
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const projRef = db.collection("projects").doc(projectId);
+
+        // 1) 진행률 로그(서브컬렉션)
+        await safeSet(projRef.collection("progress").doc(today), {
+          progress: p,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid
+        }, { merge: true });
+
+        // 2) 루트 문서에 완료 개수 + 퍼센트 동시 반영
+        await safeUpdate(projRef, {
+          completed: done,
+          progress: p,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid
+        });
+
+        console.log("[OK] completed & progress saved", projectId, done, p);
+      }
+
 
       // 1) 서브컬렉션(progress/날짜) 로그
       await safeSet(db.collection("projects").doc(projectId).collection("progress").doc(today), {
@@ -834,4 +872,5 @@
     }
   </script>
 </body>
+
 </html>
