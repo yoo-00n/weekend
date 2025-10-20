@@ -165,42 +165,46 @@
   </main>
 
   <!-- 도넛 차트 옆 배너 -->
-<a href="https://yoo-00n.github.io/JAJOSA/" target="_blank" class="floating-banner">
-  <img src="https://raw.githubusercontent.com/yoo-00n/weekend/main/docs/banner.png" alt="경계협의서 Beta">
-  <div class="banner-icon">📝경계협의서 Beta</div>
-</a>
+  <a href="https://yoo-00n.github.io/JAJOSA/" target="_blank" class="floating-banner">
+    <img src="https://raw.githubusercontent.com/yoo-00n/weekend/main/docs/banner.png" alt="경계협의서 Beta">
+    <div class="banner-icon">📝경계협의서 Beta</div>
+  </a>
 
-<style>
-/* 배너 스타일 */
-.floating-banner {
-  position: fixed;
-  top: 180px;       /* 도넛 차트 상단 맞춤 */
-  left: 40px;       /* 도넛 왼쪽 여백 안쪽 */
-  z-index: 1000;    /* 항상 위에 보이게 */
-  text-align: center;
-  cursor: pointer;
-  text-decoration: none;
-}
+  <style>
+    /* 배너 스타일 */
+    .floating-banner {
+      position: fixed;
+      top: 180px;
+      /* 도넛 차트 상단 맞춤 */
+      left: 40px;
+      /* 도넛 왼쪽 여백 안쪽 */
+      z-index: 1000;
+      /* 항상 위에 보이게 */
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+    }
 
-.floating-banner img {
-  width: 250px;
-  height: 170px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: transform 0.2s ease;
-}
+    .floating-banner img {
+      width: 250px;
+      height: 170px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+    }
 
-.floating-banner img:hover {
-  transform: scale(1.08);
-}
+    .floating-banner img:hover {
+      transform: scale(1.08);
+    }
 
-.floating-banner .banner-text {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #e8eefb; /* 대시보드 색상과 통일 */
-}
-</style>
+    .floating-banner .banner-text {
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e8eefb;
+      /* 대시보드 색상과 통일 */
+    }
+  </style>
 
 
   <script>
@@ -428,6 +432,10 @@
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week) || 0;
+        const lastTotal = Number(r.total_last_week ?? r.total) || 0;
+
+        const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
+        const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
 
         const pNowFromProgress = (typeof r.progress === "number" && isFinite(r.progress)) ? r.progress : null;
         const pNow1 = (pNowFromProgress !== null) ? pNowFromProgress : pct1(comp, total);
@@ -610,14 +618,23 @@
         const batch = db.batch();
         snap.forEach(doc => {
           const d = doc.data();
+          const totalNow = Number(d.total) || 0;
+          const compNow = Number(d.completed) || 0;
+          const progNow = (typeof d.progress === "number" && isFinite(d.progress))
+            ? Number(d.progress)
+            : Math.round((totalNow ? (compNow / totalNow * 100) : 0) * 10) / 10;
+
           batch.update(doc.ref, {
-            completed_last_week: Number(d.completed) || 0,
+            completed_last_week: compNow,
+            total_last_week: totalNow,             // ★ 지난주 분모 보존
+            progress_last_week: progNow,           // ★ 지난주 % 값 보존(정확 비교용)
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
         await batch.commit(); alert("새 주 시작 완료");
       } catch (e) { alert(e.message); }
     });
+
 
     document.getElementById("btnAddProject")?.addEventListener("click", async () => {
       if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
