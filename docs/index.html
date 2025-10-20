@@ -437,12 +437,15 @@
         const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
 
-        const pNowFromProgress = (typeof r.progress === "number" && isFinite(r.progress)) ? r.progress : null;
-        const pNow1 = (pNowFromProgress !== null) ? pNowFromProgress : pct1(comp, total);
-        const pPrev = pct1(last, total);
-        const diff = Math.round((pNow1 - pPrev) * 10) / 10;
-        const changed = Math.abs(diff) > 0.0001;
-        const pInt = Math.round(pNow1);
+        // 현재/지난주 퍼센트를 '같은 기준'으로 산출
+        const pNow = hasNowPct ? Number(r.progress) : pct1(comp, total);
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pct1(last, lastTotal);
+
+        // Δ 계산(소수 1자리) + 노이즈 억제
+        const diff = Math.round((pNow - pPrev) * 10) / 10;
+        const changed = Math.abs(diff) >= 0.1;   // 0.1pp 미만은 표시 생략
+
+        const pInt = Math.max(0, Math.min(100, Math.round(pNow)));
 
         const tr = document.createElement("tr");
         tr.dataset.team = r.team || "";
