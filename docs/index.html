@@ -648,7 +648,11 @@
       if (!name || !team) return alert("사업지구명과 팀을 입력하세요.");
       try {
         await db.collection("projects").add({
-          name, team, total, completed, completed_last_week: completed,
+          name, team, total, completed,
+          completed_last_week: completed,
+          total_last_week: total,                 // ★ 추가
+          progress: pctInt(completed, total),     // 선택: 즉시 저장
+          progress_last_week: pct1(completed, total), // ★ 추가(혹은 동일 로직)
           lx_note: "", authorityFeedback: "",
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -711,16 +715,31 @@
 
     /* ========= 7) CSV ========= */
     function exportCSV(rows) {
-      const headers = ["team", "name", "total", "completed", "completed_last_week", "progress_now", "progress_prev", "delta_pp", "lx_note", "authorityFeedback"];
+      const headers = ["team", "name", "total", "completed", "completed_last_week",
+        "progress_now", "progress_prev", "delta_pp", "lx_note", "authorityFeedback"];
       const lines = [headers.join(",")];
+
       rows.forEach(r => {
-        const total = Number(r.total) || 0, comp = Number(r.completed) || 0, last = Number(r.completed_last_week) || 0;
-        const pNow = (typeof r.progress === "number" && isFinite(r.progress)) ? r.progress : pct1(comp, total);
-        const pPrev = pct1(last, total);
-        const d = (pNow - pPrev).toFixed(1);
-        const vals = [r.team || "", r.name || "", total, comp, last, pNow.toFixed(1), pPrev.toFixed(1), d, quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")];
+        const total = Number(r.total) || 0;
+        const comp = Number(r.completed) || 0;
+        const last = Number(r.completed_last_week) || 0;
+        const lastTotal = Number(r.total_last_week ?? r.total) || 0;
+
+        const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
+        const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+
+        const pNow = hasNowPct ? Number(r.progress) : pct1(comp, total);
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pct1(last, lastTotal);
+        const d = (Math.round((pNow - pPrev) * 10) / 10).toFixed(1);
+
+        const vals = [
+          r.team || "", r.name || "", total, comp, last,
+          pNow.toFixed(1), pPrev.toFixed(1), d,
+          quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")
+        ];
         lines.push(vals.join(","));
       });
+
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
       const blob = new Blob([bom, lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -729,6 +748,7 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
+
     function quote(s) { const t = String(s).replaceAll('"', '""'); return `"${t}"`; }
 
     /* ========= 8) 관리자 패널 ========= */
