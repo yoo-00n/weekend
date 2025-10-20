@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -38,8 +37,7 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
-          </div>
+          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
       </div>
@@ -59,10 +57,13 @@
             <div class="footer">진행률(%) 기준</div>
           </div>
         </div>
+
+        <!-- ★ NOTICE 카드: 상태 표시 추가 -->
         <div class="card span-2">
           <div class="pad">
             <h2>NOTICE</h2>
             <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
+            <div id="checklistStatus" class="footer muted">읽기 전용</div>
           </div>
         </div>
       </div>
@@ -172,40 +173,11 @@
 
   <style>
     /* 배너 스타일 */
-    .floating-banner {
-      position: fixed;
-      top: 180px;
-      /* 도넛 차트 상단 맞춤 */
-      left: 40px;
-      /* 도넛 왼쪽 여백 안쪽 */
-      z-index: 1000;
-      /* 항상 위에 보이게 */
-      text-align: center;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .floating-banner img {
-      width: 250px;
-      height: 170px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      transition: transform 0.2s ease;
-    }
-
-    .floating-banner img:hover {
-      transform: scale(1.08);
-    }
-
-    .floating-banner .banner-text {
-      margin-top: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #e8eefb;
-      /* 대시보드 색상과 통일 */
-    }
+    .floating-banner { position: fixed; top: 180px; left: 40px; z-index: 1000; text-align: center; cursor: pointer; text-decoration: none; }
+    .floating-banner img { width: 250px; height: 170px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3); transition: transform .2s ease; }
+    .floating-banner img:hover { transform: scale(1.08); }
+    .floating-banner .banner-text { margin-top: 6px; font-size: 14px; font-weight: 600; color: #e8eefb; }
   </style>
-
 
   <script>
     /* ========= 1) Firebase 설정 ========= */
@@ -225,14 +197,17 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // ★ NOTICE 문서 ref
+    const dashboardRef = db.collection("settings").doc("dashboard");
+
     // KPI 문서 ref (게이지용)
-    const projIdForKPI = 'global'; // 전사 합계 KPI 저장 위치
+    const projIdForKPI = 'global';
     const statsRef = db.doc(`projects/${projIdForKPI}/stats/kpis`);
 
     let donutChart = null;
     let currentUser = null;
     let role = null;         // "admin" | "lx" | "namwon" | null
-    let isEditor = false;    // (role === "admin" || role === "lx")
+    let isEditor = false;
     let isAdmin = false;
 
     /* ========= 3) 인증 ========= */
@@ -250,7 +225,7 @@
       clearDataStreams();
       if (!db || !currentUser) return;
 
-      // 1) projects 실시간 → 표/Top3/Bottom3 렌더 + KPI 합계 반영
+      // 1) projects 실시간
       unsubs.push(
         db.collection("projects").orderBy("team").onSnapshot((snap) => {
           latestProjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -259,16 +234,14 @@
             String(a.name || "").localeCompare(String(b.name || ""))
           );
           renderProjects(latestProjects);
-          renderDashboardFromRows(latestProjects);   // 화면 즉시 갱신
-          recomputeAndPushStats(latestProjects).catch(console.warn); // KPI 문서 갱신
+          renderDashboardFromRows(latestProjects);
+          recomputeAndPushStats(latestProjects).catch(console.warn);
           buildTeamFilter(latestProjects);
           applyTeamFilter();
-        }, (err) => {
-          console.warn("projects listen error:", err.code || err.message);
-        })
+        }, (err) => { console.warn("projects listen error:", err.code || err.message); })
       );
 
-      // 2) KPI(stats/kpis) 실시간 → 도넛/라벨 최종 반영
+      // 2) KPI(stats/kpis) 실시간
       unsubs.push(
         statsRef.onSnapshot((snap) => {
           if (!snap.exists) {
@@ -280,11 +253,13 @@
         }, (err) => console.warn("stats listen error:", err.code || err.message))
       );
 
-      // 3) settings
+      // 3) ★ settings/dashboard 실시간 → NOTICE 표시
       unsubs.push(
-        db.collection("settings").doc("dashboard").onSnapshot(doc => {
+        dashboardRef.onSnapshot(doc => {
           const d = doc.data() || {};
-          if (checklistEl) checklistEl.value = d.checklist || "";
+          if (checklistEl && document.activeElement !== checklistEl) {
+            checklistEl.value = d.checklist || "";
+          }
         }, (err) => { console.warn("settings listen error:", err.code || err.message); })
       );
     }
@@ -312,8 +287,7 @@
           setControlsEnabled();
           clearDataStreams();
           latestProjects = []; renderProjects(latestProjects); renderDashboardFromRows(latestProjects);
-          initCalendar();
-          bindCalendarStreams();
+          initCalendar(); bindCalendarStreams();
         }
       });
 
@@ -354,8 +328,11 @@
       setDisabled("btnNewWeek", !(currentUser && isAdmin));
       setDisabled("btnAddProject", !(currentUser && isAdmin));
       setDisabled("btnAddSample", !(currentUser && isAdmin));
-      const checklist = document.getElementById("checklist");
-      if (checklist) checklist.disabled = !(currentUser && isAdmin);
+      if (checklistEl) {
+        const editable = !!(currentUser && isAdmin);
+        checklistEl.disabled = !editable;
+        checklistStatus.textContent = editable ? "자동 저장(관리자)" : "읽기 전용";
+      }
       renderProjects(latestProjects);
     }
     function setDisabled(id, yes) { const el = document.getElementById(id); if (el) el.disabled = !!yes; }
@@ -367,6 +344,7 @@
     const kpiProgressEl = document.getElementById("kpiProgress");
     const kpiParcelsEl = document.getElementById("kpiParcels");
     const checklistEl = document.getElementById("checklist");
+    const checklistStatus = document.getElementById("checklistStatus");
     const teamFilterEl = document.getElementById("teamFilter");
 
     let latestProjects = [];
@@ -401,8 +379,8 @@
           : pct1(Number(r.completed) || 0, Number(r.total) || 0);
         return { ...r, p };
       })
-        .filter(r => (Number(r.total) || 0) > 0)
-        .sort((a, b) => b.p - a.p);
+      .filter(r => (Number(r.total) || 0) > 0)
+      .sort((a, b) => b.p - a.p);
 
       const top = withPct.slice(0, 3);
       const bottom = withPct.slice(-3).reverse();
@@ -437,14 +415,10 @@
         const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
 
-        // 현재/지난주 퍼센트를 '같은 기준'으로 산출
         const pNow = hasNowPct ? Number(r.progress) : pct1(comp, total);
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pct1(last, lastTotal);
-
-        // Δ 계산(소수 1자리) + 노이즈 억제
         const diff = Math.round((pNow - pPrev) * 10) / 10;
-        const changed = Math.abs(diff) >= 0.1;   // 0.1pp 미만은 표시 생략
-
+        const changed = Math.abs(diff) >= 0.1;
         const pInt = Math.max(0, Math.min(100, Math.round(pNow)));
 
         const tr = document.createElement("tr");
@@ -476,7 +450,6 @@
         tbody.appendChild(tr);
       });
 
-      // 입력 바인딩
       tbody.querySelectorAll(".in-completed").forEach(el => {
         if (isAdmin) {
           el.addEventListener("input", debounce(e => {
@@ -488,14 +461,12 @@
             const total = toNum(tr.querySelector(".in-total")?.value);
             const completedCount = toNum(e.target.value);
             const percent = (!total || total <= 0) ? 0 : (completedCount / total * 100);
-            const pInt = Math.max(0, Math.min(100, Math.round(percent))); // ← 오타 수정
+            const pInt = Math.max(0, Math.min(100, Math.round(percent)));
             const projId = e.target.getAttribute("data-id");
-            // 완료 개수 + 퍼센트 동시 저장
             saveCompletedAndProgress(projId, completedCount, pInt);
           }, 600));
         }
       });
-
 
       tbody.querySelectorAll(".in-lx").forEach(el => {
         if (!(isAdmin || role === "lx")) return;
@@ -563,54 +534,41 @@
       if (!Number.isFinite(done) || done < 0) { alert("완료(이번 주)는 0 이상 숫자여야 합니다."); return; }
       if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
 
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const today = new Date().toISOString().slice(0, 10);
       const projRef = db.collection("projects").doc(projectId);
 
-      // 1) 진행률 로그(서브컬렉션)
       await safeSet(projRef.collection("progress").doc(today), {
         progress: p,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdBy: currentUser.uid
       }, { merge: true });
 
-      // 2) 루트 문서에 완료 개수 + 퍼센트 동시 반영
       await safeUpdate(projRef, {
         completed: done,
         progress: p,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: currentUser.uid
       });
-
-      console.log("[OK] completed & progress saved", projectId, done, p);
     }
 
-    // 진행률(%)만 저장(퍼센트만 갱신할 때 사용)
-    async function saveProgressPercent(projectId, percentInt) {
-      if (!(auth && currentUser && db)) return;
-
-      const p = Number(percentInt);
-      if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
-
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const projRef = db.collection("projects").doc(projectId);
-
-      // 1) 진행률 로그(서브컬렉션)
-      await safeSet(projRef.collection("progress").doc(today), {
-        progress: p,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdBy: currentUser.uid
-      }, { merge: true });
-
-      // 2) 루트 progress 갱신
-      await safeUpdate(projRef, {
-        progress: p,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: currentUser.uid
-      });
-
-      console.log("[OK] progress saved", projectId, p);
-    }
-
+    // ★ NOTICE 자동 저장 (admin만)
+    checklistEl?.addEventListener("input", debounce(async (e) => {
+      if (!(currentUser && isAdmin)) return;
+      const text = e.target.value;
+      try {
+        checklistStatus.textContent = "저장 중…";
+        await dashboardRef.set({
+          checklist: text,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid
+        }, { merge: true });
+        checklistStatus.textContent = "저장됨";
+      } catch (err) {
+        console.error("NOTICE save error:", err);
+        checklistStatus.textContent = "오류: 권한/네트워크 확인";
+        if (String(err.code) === "permission-denied") alert("관리자만 수정 가능합니다.");
+      }
+    }, 700));
 
     /* ========= 6) 버튼들 ========= */
     document.getElementById("btnNewWeek")?.addEventListener("click", async () => {
@@ -629,15 +587,14 @@
 
           batch.update(doc.ref, {
             completed_last_week: compNow,
-            total_last_week: totalNow,             // ★ 지난주 분모 보존
-            progress_last_week: progNow,           // ★ 지난주 % 값 보존(정확 비교용)
+            total_last_week: totalNow,
+            progress_last_week: progNow,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
         await batch.commit(); alert("새 주 시작 완료");
       } catch (e) { alert(e.message); }
     });
-
 
     document.getElementById("btnAddProject")?.addEventListener("click", async () => {
       if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
@@ -650,9 +607,9 @@
         await db.collection("projects").add({
           name, team, total, completed,
           completed_last_week: completed,
-          total_last_week: total,                 // ★ 추가
-          progress: pctInt(completed, total),     // 선택: 즉시 저장
-          progress_last_week: pct1(completed, total), // ★ 추가(혹은 동일 로직)
+          total_last_week: total,
+          progress: pctInt(completed, total),
+          progress_last_week: pct1(completed, total),
           lx_note: "", authorityFeedback: "",
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -952,5 +909,4 @@
     }
   </script>
 </body>
-
 </html>
