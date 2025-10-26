@@ -174,6 +174,7 @@
   </a>
 
   <style>
+<<<<<<< HEAD
     .floating-banner {
       position: fixed;
       top: 180px;
@@ -202,6 +203,12 @@
       font-weight: 600;
       color: #e8eefb;
     }
+=======
+    .floating-banner { position: fixed; top: 180px; left: 40px; z-index: 1000; text-align: center; cursor: pointer; text-decoration: none; }
+    .floating-banner img { width: 250px; height: 170px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3); transition: transform .2s ease; }
+    .floating-banner img:hover { transform: scale(1.08); }
+    .floating-banner .banner-text { margin-top: 6px; font-size: 14px; font-weight: 600; color: #e8eefb; }
+>>>>>>> ee553733bb737305e08e286902564c8ab94c966f
   </style>
 
   <script>
@@ -365,7 +372,7 @@
     /* ========= 4) 데이터 ========= */
     const tbody = document.getElementById("tbody");
     const top3El = document.getElementById("top3");
-    const bottom3El = document.getElementById("bottom3");
+    const bottom3El = document.getElementById("bottom3"); /* ← 수정됨 */
     const kpiProgressEl = document.getElementById("kpiProgress");
     const kpiParcelsEl = document.getElementById("kpiParcels");
     const checklistEl = document.getElementById("checklist");
@@ -438,17 +445,34 @@
       tbody.innerHTML = "";
       rows.forEach(r => {
         const total = Number(r.total) || 0;
+<<<<<<< HEAD
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week);
         const lastTotal = Number((r.total_last_week ?? r.total));
 
+=======
+        const comp  = Number(r.completed) || 0;
+        const last  = Number(r.completed_last_week);
+        const lastTotal = Number((r.total_last_week ?? r.total));
+
+        const hasNowPct  = (typeof r.progress === "number" && isFinite(r.progress));
+>>>>>>> ee553733bb737305e08e286902564c8ab94c966f
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
+
+<<<<<<< HEAD
+        const hasPrevData = hasPrevPct ||
+          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
+
+        const pNow = pctSafe(comp, total); // ← 핵심
+=======
+        const pNow  = hasNowPct  ? Number(r.progress)           : pctSafe(comp, total);
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
 
         const hasPrevData = hasPrevPct ||
           (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
 
-        const pNow = pctSafe(comp, total); // ← 핵심
+>>>>>>> ee553733bb737305e08e286902564c8ab94c966f
         let diff = pNow - pPrev;
         diff = Number.isFinite(diff) ? Math.round(diff * 10) / 10 : 0;
         const changed = hasPrevData && Math.abs(diff) >= 0.1;
@@ -716,16 +740,32 @@
 
       rows.forEach(r => {
         const total = Number(r.total) || 0;
+<<<<<<< HEAD
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week);
         const lastTotal = Number((r.total_last_week ?? r.total));
 
+=======
+        const comp  = Number(r.completed) || 0;
+        const last  = Number(r.completed_last_week);
+        const lastTotal = Number((r.total_last_week ?? r.total));
+
+        const hasNowPct  = (typeof r.progress === "number" && isFinite(r.progress));
+>>>>>>> ee553733bb737305e08e286902564c8ab94c966f
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
         const hasPrevData = hasPrevPct ||
           (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
 
+<<<<<<< HEAD
         const pNow = pctSafe(comp, total); // ← 핵심
+=======
+        const pNow  = hasNowPct  ? Number(r.progress)           : pctSafe(comp, total);
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
+        const hasPrevData = hasPrevPct ||
+          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
+
+>>>>>>> ee553733bb737305e08e286902564c8ab94c966f
         const diff = hasPrevData ? (Math.round((pNow - pPrev) * 10) / 10) : null;
 
         const vals = [
@@ -866,8 +906,8 @@
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         height: 'parent',
-        editable: !!(currentUser && (isEditor || isAdmin)),
-        selectable: !!(currentUser && (isEditor || isAdmin)),
+        editable: !!(currentUser && (isEditor || isAdmin)),   /* ← 여분 ) 제거 */
+        selectable: !!(currentUser && (isEditor || isAdmin)), /* ← 여분 ) 제거 */
         headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
         select: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
