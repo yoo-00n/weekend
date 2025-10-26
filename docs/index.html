@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -37,7 +38,8 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span></div>
+          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
+          </div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
       </div>
@@ -58,7 +60,7 @@
           </div>
         </div>
 
-        <!-- ★ NOTICE 카드: 상태 표시 추가 -->
+        <!-- NOTICE -->
         <div class="card span-2">
           <div class="pad">
             <h2>NOTICE</h2>
@@ -172,11 +174,34 @@
   </a>
 
   <style>
-    /* 배너 스타일 */
-    .floating-banner { position: fixed; top: 180px; left: 40px; z-index: 1000; text-align: center; cursor: pointer; text-decoration: none; }
-    .floating-banner img { width: 250px; height: 170px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3); transition: transform .2s ease; }
-    .floating-banner img:hover { transform: scale(1.08); }
-    .floating-banner .banner-text { margin-top: 6px; font-size: 14px; font-weight: 600; color: #e8eefb; }
+    .floating-banner {
+      position: fixed;
+      top: 180px;
+      left: 40px;
+      z-index: 1000;
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .floating-banner img {
+      width: 250px;
+      height: 170px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+      transition: transform .2s ease;
+    }
+
+    .floating-banner img:hover {
+      transform: scale(1.08);
+    }
+
+    .floating-banner .banner-text {
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e8eefb;
+    }
   </style>
 
   <script>
@@ -197,7 +222,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // ★ NOTICE 문서 ref
+    // NOTICE 문서 ref
     const dashboardRef = db.collection("settings").doc("dashboard");
 
     // KPI 문서 ref (게이지용)
@@ -249,11 +274,11 @@
             return;
           }
           const s = snap.data() || {};
-          updateGauge(Number(s.done) || 0, Number(s.total) || 0, Number(s.weekComplete) || 0);
+          updateGauge(Number(s.done) || 0, Number(s.total) || 0);
         }, (err) => console.warn("stats listen error:", err.code || err.message))
       );
 
-      // 3) ★ settings/dashboard 실시간 → NOTICE 표시
+      // 3) settings/dashboard 실시간 → NOTICE 표시
       unsubs.push(
         dashboardRef.onSnapshot(doc => {
           const d = doc.data() || {};
@@ -358,6 +383,11 @@
       const p = (!total || total <= 0) ? 0 : (completed / total * 100);
       return Math.round(p);
     }
+    function pctSafe(done, total) {
+      const dn = Number(done), tn = Number(total);
+      if (!Number.isFinite(dn) || !Number.isFinite(tn) || tn <= 0) return 0;
+      return (dn / tn) * 100;
+    }
 
     function updateGauge(doneAll, totalAll) {
       const progress = pct1(doneAll, totalAll);
@@ -372,15 +402,14 @@
       else { donutChart = new Chart(ctx, { type: "doughnut", data, options: opt }); }
     }
 
+    /* ★ 변경: Top/Bottom은 항상 completed/total 로 계산 */
     function renderDashboardFromRows(rows) {
       const withPct = rows.map(r => {
-        const p = (typeof r.progress === "number" && isFinite(r.progress))
-          ? r.progress
-          : pct1(Number(r.completed) || 0, Number(r.total) || 0);
+        const p = pct1(Number(r.completed) || 0, Number(r.total) || 0);
         return { ...r, p };
       })
-      .filter(r => (Number(r.total) || 0) > 0)
-      .sort((a, b) => b.p - a.p);
+        .filter(r => (Number(r.total) || 0) > 0)
+        .sort((a, b) => b.p - a.p);
 
       const top = withPct.slice(0, 3);
       const bottom = withPct.slice(-3).reverse();
@@ -403,23 +432,31 @@
       }
     }
 
+    /* ★ 변경: 행 렌더는 progress 필드 무시, 항상 completed/total 로 pNow 계산 */
     function renderProjects(rows) {
       if (!tbody) return;
       tbody.innerHTML = "";
       rows.forEach(r => {
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
-        const last = Number(r.completed_last_week) || 0;
-        const lastTotal = Number(r.total_last_week ?? r.total) || 0;
+        const last = Number(r.completed_last_week);
+        const lastTotal = Number((r.total_last_week ?? r.total));
 
-        const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
 
-        const pNow = hasNowPct ? Number(r.progress) : pct1(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pct1(last, lastTotal);
-        const diff = Math.round((pNow - pPrev) * 10) / 10;
-        const changed = Math.abs(diff) >= 0.1;
+        const hasPrevData = hasPrevPct ||
+          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
+
+        const pNow = pctSafe(comp, total); // ← 핵심
+        let diff = pNow - pPrev;
+        diff = Number.isFinite(diff) ? Math.round(diff * 10) / 10 : 0;
+        const changed = hasPrevData && Math.abs(diff) >= 0.1;
         const pInt = Math.max(0, Math.min(100, Math.round(pNow)));
+
+        const deltaCell = hasPrevData
+          ? (changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "0.0")
+          : "—";
 
         const tr = document.createElement("tr");
         tr.dataset.team = r.team || "";
@@ -439,7 +476,7 @@
             <div class="barwrap"><div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
             <span class="barlabel">${pInt}%</span></div>
           </td>
-          <td class="col-delta delta ${changed ? "changed" : ""}">${changed ? (diff > 0 ? "+" : "") + diff.toFixed(1) : "—"}</td>
+          <td class="col-delta delta ${hasPrevData && changed ? "changed" : ""}">${deltaCell}</td>
           <td class="col-handover">
             <textarea class="in-lx" data-id="${r.id}" ${(isAdmin || role === "lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
           </td>
@@ -525,7 +562,7 @@
       }
     }
 
-    // LX가 '완료 개수'와 '진행률(%)'을 함께 저장
+    // LX 저장 (지난 주 스냅샷은 건드리지 않음)
     async function saveCompletedAndProgress(projectId, completedCount, percentInt) {
       if (!(auth && currentUser && db)) return;
 
@@ -551,7 +588,7 @@
       });
     }
 
-    // ★ NOTICE 자동 저장 (admin만)
+    // NOTICE 자동 저장 (admin만)
     checklistEl?.addEventListener("input", debounce(async (e) => {
       if (!(currentUser && isAdmin)) return;
       const text = e.target.value;
@@ -671,6 +708,7 @@
     });
 
     /* ========= 7) CSV ========= */
+    /* ★ 변경: CSV도 화면과 동일하게 계산 */
     function exportCSV(rows) {
       const headers = ["team", "name", "total", "completed", "completed_last_week",
         "progress_now", "progress_prev", "delta_pp", "lx_note", "authorityFeedback"];
@@ -679,19 +717,22 @@
       rows.forEach(r => {
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
-        const last = Number(r.completed_last_week) || 0;
-        const lastTotal = Number(r.total_last_week ?? r.total) || 0;
+        const last = Number(r.completed_last_week);
+        const lastTotal = Number((r.total_last_week ?? r.total));
 
-        const hasNowPct = (typeof r.progress === "number" && isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
+        const hasPrevData = hasPrevPct ||
+          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
 
-        const pNow = hasNowPct ? Number(r.progress) : pct1(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pct1(last, lastTotal);
-        const d = (Math.round((pNow - pPrev) * 10) / 10).toFixed(1);
+        const pNow = pctSafe(comp, total); // ← 핵심
+        const diff = hasPrevData ? (Math.round((pNow - pPrev) * 10) / 10) : null;
 
         const vals = [
-          r.team || "", r.name || "", total, comp, last,
-          pNow.toFixed(1), pPrev.toFixed(1), d,
+          r.team || "", r.name || "", total, comp, Number.isFinite(last) ? last : "",
+          pNow.toFixed(1),
+          hasPrevData ? pPrev.toFixed(1) : "",
+          hasPrevData ? (diff >= 0 ? "+" : "") + diff.toFixed(1) : "—",
           quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")
         ];
         lines.push(vals.join(","));
@@ -909,4 +950,5 @@
     }
   </script>
 </body>
+
 </html>
