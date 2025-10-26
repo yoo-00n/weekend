@@ -38,7 +38,9 @@
       <div class="card">
         <div class="pad">
           <h2>전체 공정률</h2>
-          <div class="kpi"><span id="kpiProgress" class="big">0%</span><span class="sub" id="kpiParcels">0 / 0 필지</span>
+          <div class="kpi">
+            <span id="kpiProgress" class="big">0%</span>
+            <span class="sub" id="kpiParcels">0 / 0 필지</span>
           </div>
           <canvas id="overallDonut" style="margin-top:6px"></canvas>
         </div>
@@ -174,7 +176,6 @@
   </a>
 
   <style>
-<<<<<<< HEAD
     .floating-banner {
       position: fixed;
       top: 180px;
@@ -203,12 +204,6 @@
       font-weight: 600;
       color: #e8eefb;
     }
-=======
-    .floating-banner { position: fixed; top: 180px; left: 40px; z-index: 1000; text-align: center; cursor: pointer; text-decoration: none; }
-    .floating-banner img { width: 250px; height: 170px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3); transition: transform .2s ease; }
-    .floating-banner img:hover { transform: scale(1.08); }
-    .floating-banner .banner-text { margin-top: 6px; font-size: 14px; font-weight: 600; color: #e8eefb; }
->>>>>>> ee553733bb737305e08e286902564c8ab94c966f
   </style>
 
   <script>
@@ -246,7 +241,8 @@
     const btnSignIn = document.getElementById("btnSignIn");
     const btnSignOut = document.getElementById("btnSignOut");
     const userInfo = document.getElementById("userInfo");
-    const roleBadge = document.getElementById("roleBadge");
+    theRoleBadge = document.getElementById("roleBadge");
+    const roleBadge = theRoleBadge;
     const adminPanel = document.getElementById("adminPanel");
     const btnDeleteAll = document.getElementById("btnDeleteAll");
 
@@ -318,8 +314,11 @@
           role = null; isEditor = false; isAdmin = false;
           setControlsEnabled();
           clearDataStreams();
-          latestProjects = []; renderProjects(latestProjects); renderDashboardFromRows(latestProjects);
-          initCalendar(); bindCalendarStreams();
+          latestProjects = [];
+          renderProjects(latestProjects);
+          renderDashboardFromRows(latestProjects);
+          initCalendar();
+          bindCalendarStreams();
         }
       });
 
@@ -346,8 +345,15 @@
         isEditor = role === "admin" || role === "lx";
         roleBadge.textContent = role || "unknown";
         roleBadge.classList.remove("hidden");
-        if (isAdmin) { adminPanel?.classList.remove("hidden"); btnDeleteAll?.classList.remove("hidden"); bindAdminStreams(); }
-        else { adminPanel?.classList.add("hidden"); btnDeleteAll?.classList.add("hidden"); clearAdminStreams(); }
+        if (isAdmin) {
+          adminPanel?.classList.remove("hidden");
+          btnDeleteAll?.classList.remove("hidden");
+          bindAdminStreams();
+        } else {
+          adminPanel?.classList.add("hidden");
+          btnDeleteAll?.classList.add("hidden");
+          clearAdminStreams();
+        }
       } else {
         roleBadge.textContent = "no-role";
         roleBadge.classList.remove("hidden");
@@ -367,12 +373,15 @@
       }
       renderProjects(latestProjects);
     }
-    function setDisabled(id, yes) { const el = document.getElementById(id); if (el) el.disabled = !!yes; }
+    function setDisabled(id, yes) {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !!yes;
+    }
 
     /* ========= 4) 데이터 ========= */
     const tbody = document.getElementById("tbody");
     const top3El = document.getElementById("top3");
-    const bottom3El = document.getElementById("bottom3"); /* ← 수정됨 */
+    const bottom3El = document.getElementById("bottom3");
     const kpiProgressEl = document.getElementById("kpiProgress");
     const kpiParcelsEl = document.getElementById("kpiParcels");
     const checklistEl = document.getElementById("checklist");
@@ -402,26 +411,44 @@
       kpiParcelsEl.textContent = `${doneAll} / ${totalAll} 필지`;
 
       const remain = Math.max(0, totalAll - doneAll);
-      const data = { labels: ["완료", "잔여"], datasets: [{ data: [doneAll, remain] }] };
-      const opt = { plugins: { legend: { labels: { color: "#cfe0ff" } } }, cutout: "60%", maintainAspectRatio: false, layout: { padding: 0 } };
+      const data = {
+        labels: ["완료", "잔여"],
+        datasets: [{ data: [doneAll, remain] }]
+      };
+      const opt = {
+        plugins: { legend: { labels: { color: "#cfe0ff" } } },
+        cutout: "60%",
+        maintainAspectRatio: false,
+        layout: { padding: 0 }
+      };
       const ctx = document.getElementById("overallDonut");
-      if (donutChart) { donutChart.data = data; donutChart.update(); }
-      else { donutChart = new Chart(ctx, { type: "doughnut", data, options: opt }); }
+      if (donutChart) {
+        donutChart.data = data;
+        donutChart.update();
+      } else {
+        donutChart = new Chart(ctx, { type: "doughnut", data, options: opt });
+      }
     }
 
-    /* ★ 변경: Top/Bottom은 항상 completed/total 로 계산 */
+    /* Top/Bottom 계산: completed/total 기반 */
     function renderDashboardFromRows(rows) {
-      const withPct = rows.map(r => {
-        const p = pct1(Number(r.completed) || 0, Number(r.total) || 0);
-        return { ...r, p };
-      })
+      const withPct = rows
+        .map(r => {
+          const p = pct1(Number(r.completed) || 0, Number(r.total) || 0);
+          return { ...r, p };
+        })
         .filter(r => (Number(r.total) || 0) > 0)
         .sort((a, b) => b.p - a.p);
 
       const top = withPct.slice(0, 3);
       const bottom = withPct.slice(-3).reverse();
-      top3El.innerHTML = top.map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
-      bottom3El.innerHTML = bottom.map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`).join("");
+
+      top3El.innerHTML = top
+        .map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`)
+        .join("");
+      bottom3El.innerHTML = bottom
+        .map(r => `<li>${esc(r.name)} <span class="muted">(${r.p.toFixed(1)}%)</span></li>`)
+        .join("");
     }
 
     async function recomputeAndPushStats(rows) {
@@ -439,42 +466,31 @@
       }
     }
 
-    /* ★ 변경: 행 렌더는 progress 필드 무시, 항상 completed/total 로 pNow 계산 */
+    /* 테이블 렌더: 진행률/Δ 계산 */
     function renderProjects(rows) {
       if (!tbody) return;
       tbody.innerHTML = "";
+
       rows.forEach(r => {
         const total = Number(r.total) || 0;
-<<<<<<< HEAD
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week);
         const lastTotal = Number((r.total_last_week ?? r.total));
 
-=======
-        const comp  = Number(r.completed) || 0;
-        const last  = Number(r.completed_last_week);
-        const lastTotal = Number((r.total_last_week ?? r.total));
+        // 진행률 현재/지난주 판단
+        const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
+        const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
 
-        const hasNowPct  = (typeof r.progress === "number" && isFinite(r.progress));
->>>>>>> ee553733bb737305e08e286902564c8ab94c966f
-        const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+        const pNow = hasNowPct ? Number(r.progress) : pctSafe(comp, total);
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
 
-<<<<<<< HEAD
-        const hasPrevData = hasPrevPct ||
+        const hasPrevData =
+          hasPrevPct ||
           (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
 
-        const pNow = pctSafe(comp, total); // ← 핵심
-=======
-        const pNow  = hasNowPct  ? Number(r.progress)           : pctSafe(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
-
-        const hasPrevData = hasPrevPct ||
-          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
-
->>>>>>> ee553733bb737305e08e286902564c8ab94c966f
         let diff = pNow - pPrev;
         diff = Number.isFinite(diff) ? Math.round(diff * 10) / 10 : 0;
+
         const changed = hasPrevData && Math.abs(diff) >= 0.1;
         const pInt = Math.max(0, Math.min(100, Math.round(pNow)));
 
@@ -497,8 +513,10 @@
             <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${(isAdmin || role === "lx") ? "" : "disabled"} />
           </td>
           <td class="col-progress">
-            <div class="barwrap"><div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
-            <span class="barlabel">${pInt}%</span></div>
+            <div class="barwrap">
+              <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
+              <span class="barlabel">${pInt}%</span>
+            </div>
           </td>
           <td class="col-delta delta ${hasPrevData && changed ? "changed" : ""}">${deltaCell}</td>
           <td class="col-handover">
@@ -511,6 +529,7 @@
         tbody.appendChild(tr);
       });
 
+      // 이벤트 바인딩
       tbody.querySelectorAll(".in-completed").forEach(el => {
         if (isAdmin) {
           el.addEventListener("input", debounce(e => {
@@ -531,12 +550,16 @@
 
       tbody.querySelectorAll(".in-lx").forEach(el => {
         if (!(isAdmin || role === "lx")) return;
-        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "lx_note", e.target.value), 700));
+        el.addEventListener("input", debounce(e => {
+          saveFieldRoot(e.target, "lx_note", e.target.value);
+        }, 700));
       });
 
       tbody.querySelectorAll(".in-auth").forEach(el => {
         if (!isAdmin) return;
-        el.addEventListener("input", debounce(e => saveFieldRoot(e.target, "authorityFeedback", e.target.value), 700));
+        el.addEventListener("input", debounce(e => {
+          saveFieldRoot(e.target, "authorityFeedback", e.target.value);
+        }, 700));
       });
 
       if (isAdmin) {
@@ -545,26 +568,50 @@
             const id = e.currentTarget.getAttribute("data-del");
             if (!id) return;
             if (!confirm("이 사업지구를 삭제할까요?")) return;
-            try { await db.collection("projects").doc(id).delete(); }
-            catch (err) { alert("삭제 실패: " + (err.message || err)); }
+            try {
+              await db.collection("projects").doc(id).delete();
+            } catch (err) {
+              alert("삭제 실패: " + (err.message || err));
+            }
           });
         });
       }
     }
 
-    function toNum(v) { const n = Number(v); return isFinite(n) ? n : 0; }
-    function esc(s) { return String(s).replace(/[&<>\"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c])); }
+    function toNum(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function esc(s) {
+      return String(s).replace(/[&<>\"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[c]));
+    }
 
     // 안전 저장 유틸
     async function safeSet(ref, data, opt = { merge: true }) {
       console.log('[WRITE:set]', ref.path, data);
-      try { await ref.set(data, opt); console.log('[OK:set]', ref.path); }
-      catch (e) { console.error('[FAIL:set]', ref.path, data, e.code, e.message); throw e; }
+      try {
+        await ref.set(data, opt);
+        console.log('[OK:set]', ref.path);
+      } catch (e) {
+        console.error('[FAIL:set]', ref.path, data, e.code, e.message);
+        throw e;
+      }
     }
     async function safeUpdate(ref, data) {
       console.log('[WRITE:update]', ref.path, data);
-      try { await ref.update(data); console.log('[OK:update]', ref.path); }
-      catch (e) { console.error('[FAIL:update]', ref.path, data, e.code, e.message); throw e; }
+      try {
+        await ref.update(data);
+        console.log('[OK:update]', ref.path);
+      } catch (e) {
+        console.error('[FAIL:update]', ref.path, data, e.code, e.message);
+        throw e;
+      }
     }
 
     // 루트 문서 필드 저장
@@ -572,12 +619,22 @@
       if (!(auth && currentUser && db)) return;
       const id = el.getAttribute("data-id");
       const ref = db.collection("projects").doc(id);
-      const patch = (field === "lx_note") ? { lx_note: String(value) } : { [field]: value };
+      const patch = (field === "lx_note")
+        ? { lx_note: String(value) }
+        : { [field]: value };
       try {
-        await safeUpdate(ref, { ...patch, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid });
+        await safeUpdate(ref, {
+          ...patch,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentUser.uid
+        });
       } catch (e) {
         if (e.code === "not-found" || /NOT_FOUND/i.test(String(e.message))) {
-          await safeSet(ref, { ...patch, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: currentUser.uid }, { merge: true });
+          await safeSet(ref, {
+            ...patch,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedBy: currentUser.uid
+          }, { merge: true });
         } else if (e.code === "permission-denied") {
           alert("편집 권한이 없습니다. (관리자 승인/권한 필요)");
         } else {
@@ -592,17 +649,27 @@
 
       const done = Number(completedCount);
       const p = Number(percentInt);
-      if (!Number.isFinite(done) || done < 0) { alert("완료(이번 주)는 0 이상 숫자여야 합니다."); return; }
-      if (!Number.isFinite(p) || p < 0 || p > 100) { alert("진행률은 0~100 사이 숫자여야 합니다."); return; }
+      if (!Number.isFinite(done) || done < 0) {
+        alert("완료(이번 주)는 0 이상 숫자여야 합니다.");
+        return;
+      }
+      if (!Number.isFinite(p) || p < 0 || p > 100) {
+        alert("진행률은 0~100 사이 숫자여야 합니다.");
+        return;
+      }
 
       const today = new Date().toISOString().slice(0, 10);
       const projRef = db.collection("projects").doc(projectId);
 
-      await safeSet(projRef.collection("progress").doc(today), {
-        progress: p,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdBy: currentUser.uid
-      }, { merge: true });
+      await safeSet(
+        projRef.collection("progress").doc(today),
+        {
+          progress: p,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid
+        },
+        { merge: true }
+      );
 
       await safeUpdate(projRef, {
         completed: done,
@@ -627,7 +694,9 @@
       } catch (err) {
         console.error("NOTICE save error:", err);
         checklistStatus.textContent = "오류: 권한/네트워크 확인";
-        if (String(err.code) === "permission-denied") alert("관리자만 수정 가능합니다.");
+        if (String(err.code) === "permission-denied") {
+          alert("관리자만 수정 가능합니다.");
+        }
       }
     }, 700));
 
@@ -642,7 +711,7 @@
           const d = doc.data();
           const totalNow = Number(d.total) || 0;
           const compNow = Number(d.completed) || 0;
-          const progNow = (typeof d.progress === "number" && isFinite(d.progress))
+          const progNow = (typeof d.progress === "number" && Number.isFinite(d.progress))
             ? Number(d.progress)
             : Math.round((totalNow ? (compNow / totalNow * 100) : 0) * 10) / 10;
 
@@ -653,7 +722,8 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
-        await batch.commit(); alert("새 주 시작 완료");
+        await batch.commit();
+        alert("새 주 시작 완료");
       } catch (e) { alert(e.message); }
     });
 
@@ -698,22 +768,27 @@
           batch.set(ref, {
             ...s,
             completed_last_week: s.completed,
+            total_last_week: s.total,
             lx_note: "",
             authorityFeedback: "",
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
-        await batch.commit(); alert("샘플 데이터 추가 완료");
+        await batch.commit();
+        alert("샘플 데이터 추가 완료");
       } catch (e) { alert("추가 실패: " + (e.message || e)); }
     });
 
     document.getElementById("btnExport")?.addEventListener("click", () => exportCSV(latestProjects));
+
     document.getElementById("btnRequestEdit")?.addEventListener("click", async () => {
       if (!(auth && currentUser && db)) return alert("로그인 후 사용하세요.");
       const note = prompt("요청 사유를 입력해 주세요 (lx 김형윤, 남원 ㅇㅇㅇ)");
       try {
         await db.collection("edit_requests").doc(currentUser.uid).set({
-          uid: currentUser.uid, note: note || "", createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          uid: currentUser.uid,
+          note: note || "",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         alert("요청이 등록되었습니다. 관리자 승인 후 편집 가능합니다.");
       } catch (e) { alert(e.message); }
@@ -732,48 +807,47 @@
     });
 
     /* ========= 7) CSV ========= */
-    /* ★ 변경: CSV도 화면과 동일하게 계산 */
     function exportCSV(rows) {
-      const headers = ["team", "name", "total", "completed", "completed_last_week",
-        "progress_now", "progress_prev", "delta_pp", "lx_note", "authorityFeedback"];
+      const headers = [
+        "team", "name", "total", "completed", "completed_last_week",
+        "progress_now", "progress_prev", "delta_pp",
+        "lx_note", "authorityFeedback"
+      ];
       const lines = [headers.join(",")];
 
       rows.forEach(r => {
         const total = Number(r.total) || 0;
-<<<<<<< HEAD
         const comp = Number(r.completed) || 0;
         const last = Number(r.completed_last_week);
         const lastTotal = Number((r.total_last_week ?? r.total));
 
-=======
-        const comp  = Number(r.completed) || 0;
-        const last  = Number(r.completed_last_week);
-        const lastTotal = Number((r.total_last_week ?? r.total));
+        const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
+        const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
 
-        const hasNowPct  = (typeof r.progress === "number" && isFinite(r.progress));
->>>>>>> ee553733bb737305e08e286902564c8ab94c966f
-        const hasPrevPct = (typeof r.progress_last_week === "number" && isFinite(r.progress_last_week));
+        const pNow = hasNowPct ? Number(r.progress) : pctSafe(comp, total);
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
-        const hasPrevData = hasPrevPct ||
+
+        const hasPrevData =
+          hasPrevPct ||
           (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
 
-<<<<<<< HEAD
-        const pNow = pctSafe(comp, total); // ← 핵심
-=======
-        const pNow  = hasNowPct  ? Number(r.progress)           : pctSafe(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
-        const hasPrevData = hasPrevPct ||
-          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
-
->>>>>>> ee553733bb737305e08e286902564c8ab94c966f
-        const diff = hasPrevData ? (Math.round((pNow - pPrev) * 10) / 10) : null;
+        const diff = hasPrevData
+          ? (Math.round((pNow - pPrev) * 10) / 10)
+          : null;
 
         const vals = [
-          r.team || "", r.name || "", total, comp, Number.isFinite(last) ? last : "",
+          r.team || "",
+          r.name || "",
+          total,
+          comp,
+          Number.isFinite(last) ? last : "",
           pNow.toFixed(1),
           hasPrevData ? pPrev.toFixed(1) : "",
-          hasPrevData ? (diff >= 0 ? "+" : "") + diff.toFixed(1) : "—",
-          quote(r.lx_note || r.lxNotes || ""), quote(r.authorityFeedback || "")
+          hasPrevData
+            ? ((diff >= 0 ? "+" : "") + diff.toFixed(1))
+            : "—",
+          quote(r.lx_note || r.lxNotes || ""),
+          quote(r.authorityFeedback || "")
         ];
         lines.push(vals.join(","));
       });
@@ -782,12 +856,18 @@
       const blob = new Blob([bom, lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = "projects.csv";
-      document.body.appendChild(a); a.click(); a.remove();
+      a.href = url;
+      a.download = "projects.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
 
-    function quote(s) { const t = String(s).replaceAll('"', '""'); return `"${t}"`; }
+    function quote(s) {
+      const t = String(s).replaceAll('"', '""');
+      return `"${t}"`;
+    }
 
     /* ========= 8) 관리자 패널 ========= */
     const requestsBox = document.getElementById("requests");
@@ -800,64 +880,88 @@
       unsubsAdmin.push(
         db.collection("edit_requests").orderBy("createdAt", "desc").onSnapshot(snap => {
           if (!requestsBox) return;
-          if (snap.empty) { requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>'; return; }
+          if (snap.empty) {
+            requestsBox.innerHTML = '<div class="muted">대기 요청 없음</div>';
+            return;
+          }
           requestsBox.innerHTML = snap.docs.map(d => {
             const x = d.data();
-            return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                  <div>
-                    <div><b>UID:</b> ${d.id}</div>
-                    <div class="muted">${esc(x.note || "요청 사유 없음")}</div>
-                  </div>
-                  <div class="btn-row">
-                    <button class="btn accent" onclick="approveEditor('${d.id}')">승인(LX)</button>
-                    <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
-                  </div>
-                </div>`;
+            return `
+              <div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                <div>
+                  <div><b>UID:</b> ${d.id}</div>
+                  <div class="muted">${esc(x.note || "요청 사유 없음")}</div>
+                </div>
+                <div class="btn-row">
+                  <button class="btn accent" onclick="approveEditor('${d.id}')">승인(LX)</button>
+                  <button class="btn danger" onclick="rejectRequest('${d.id}')">거절</button>
+                </div>
+              </div>`;
           }).join("");
         })
       );
       unsubsAdmin.push(
         db.collection("roles").orderBy("role").onSnapshot(snap => {
           if (!editorsBox) return;
-          if (snap.empty) { editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>'; return; }
+          if (snap.empty) {
+            editorsBox.innerHTML = '<div class="muted">권한 사용자 없음</div>';
+            return;
+          }
           editorsBox.innerHTML = snap.docs.map(d => {
             const x = d.data();
-            return `<div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
-                  <div><b>${d.id.slice(0, 10)}...</b> <span class="badge">${esc(x.role)}</span></div>
-                  <div class="btn-row">
-                    ${x.role !== "admin" ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">권한 회수</button>` : ""}
-                  </div>
-                </div>`;
+            return `
+              <div class="flex" style="justify-content:space-between;border:1px solid #1b2446;border-radius:10px;padding:10px;margin:6px 0">
+                <div><b>${d.id.slice(0, 10)}...</b> <span class="badge">${esc(x.role)}</span></div>
+                <div class="btn-row">
+                  ${x.role !== "admin"
+                ? `<button class="btn danger" onclick="revokeEditor('${d.id}')">권한 회수</button>`
+                : ""}
+                </div>
+              </div>`;
           }).join("");
         })
       );
     }
     window.approveEditor = async function (targetUid) {
       try {
-        await db.collection("roles").doc(targetUid).set({ role: "lx", grantedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        await db.collection("roles").doc(targetUid).set(
+          { role: "lx", grantedAt: firebase.firestore.FieldValue.serverTimestamp() },
+          { merge: true }
+        );
         await db.collection("edit_requests").doc(targetUid).delete();
         alert("승인 완료 (LX 권한)");
       } catch (e) { alert(e.message); }
     };
     window.rejectRequest = async function (targetUid) {
-      try { await db.collection("edit_requests").doc(targetUid).delete(); }
-      catch (e) { alert(e.message); }
+      try {
+        await db.collection("edit_requests").doc(targetUid).delete();
+      } catch (e) { alert(e.message); }
     };
     window.revokeEditor = async function (targetUid) {
       if (!confirm("이 사용자의 권한을 회수할까요? (보기만 가능)")) return;
-      try { await db.collection("roles").doc(targetUid).set({ role: "namwon" }, { merge: true }); alert("회수 완료"); }
-      catch (e) { alert(e.message); }
+      try {
+        await db.collection("roles").doc(targetUid).set(
+          { role: "namwon" },
+          { merge: true }
+        );
+        alert("회수 완료");
+      } catch (e) { alert(e.message); }
     };
 
     /* ========= 9) 팀 필터 ========= */
     let lastTeamOptionSig = "";
     function buildTeamFilter(rows) {
       if (!teamFilterEl) return;
-      const teams = Array.from(new Set(rows.map(r => (r.team || "").trim()).filter(Boolean))).sort();
+      const teams = Array.from(
+        new Set(
+          rows.map(r => (r.team || "").trim()).filter(Boolean)
+        )
+      ).sort();
       const sig = teams.join("|");
       if (sig === lastTeamOptionSig) return;
       const current = teamFilterEl.value || "__ALL__";
-      teamFilterEl.innerHTML = `<option value="__ALL__">전체</option>` +
+      teamFilterEl.innerHTML =
+        `<option value="__ALL__">전체</option>` +
         teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
       lastTeamOptionSig = sig;
       const keep = [...teamFilterEl.options].some(o => o.value === current);
@@ -875,9 +979,13 @@
 
     /* ========= 10) 유틸 ========= */
     function debounce(fn, wait) {
-      let t; return function () {
+      let t;
+      return function () {
         clearTimeout(t);
-        const args = arguments; t = setTimeout(function () { fn.apply(null, args); }, wait);
+        const args = arguments;
+        t = setTimeout(function () {
+          fn.apply(null, args);
+        }, wait);
       };
     }
   </script>
@@ -899,16 +1007,24 @@
       if (calendar) {
         calendar.setOption("editable", !!(currentUser && (isEditor || isAdmin)));
         calendar.setOption("selectable", !!(currentUser && (isEditor || isAdmin)));
-        calendar.setOption("headerToolbar", { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" });
+        calendar.setOption("headerToolbar", {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay"
+        });
         return;
       }
 
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "dayGridMonth",
         height: 'parent',
-        editable: !!(currentUser && (isEditor || isAdmin)),   /* ← 여분 ) 제거 */
-        selectable: !!(currentUser && (isEditor || isAdmin)), /* ← 여분 ) 제거 */
-        headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" },
+        editable: !!(currentUser && (isEditor || isAdmin)),
+        selectable: !!(currentUser && (isEditor || isAdmin)),
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay"
+        },
         select: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { calendar.unselect(); return; }
           const title = prompt("일정 제목을 입력하세요:");
@@ -922,14 +1038,20 @@
               createdBy: currentUser.uid,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-          } catch (e) { alert("일정 추가 실패: " + (e.message || e)); }
-          finally { calendar.unselect(); }
+          } catch (e) {
+            alert("일정 추가 실패: " + (e.message || e));
+          } finally {
+            calendar.unselect();
+          }
         },
         eventClick: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) return;
           if (!confirm("이 일정을 삭제할까요?")) return;
-          try { await db.collection(CAL_COL).doc(info.event.id).delete(); }
-          catch (e) { alert("삭제 실패: " + (e.message || e)); }
+          try {
+            await db.collection(CAL_COL).doc(info.event.id).delete();
+          } catch (e) {
+            alert("삭제 실패: " + (e.message || e));
+          }
         },
         eventDrop: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
@@ -940,7 +1062,10 @@
               allDay: info.event.allDay,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-          } catch (e) { info.revert(); alert("이동 실패: " + (e.message || e)); }
+          } catch (e) {
+            info.revert();
+            alert("이동 실패: " + (e.message || e));
+          }
         },
         eventResize: async function (info) {
           if (!(currentUser && (isEditor || isAdmin))) { info.revert(); return; }
@@ -950,7 +1075,10 @@
               end: info.event.end,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-          } catch (e) { info.revert(); alert("수정 실패: " + (e.message || e)); }
+          } catch (e) {
+            info.revert();
+            alert("수정 실패: " + (e.message || e));
+          }
         }
       });
 
@@ -976,17 +1104,25 @@
               allDay: !!d.allDay
             };
             if (chg.type === "added") {
-              const exist = calendar.getEventById(id); if (exist) exist.remove();
+              const exist = calendar.getEventById(id);
+              if (exist) exist.remove();
               calendar.addEvent(ev);
             } else if (chg.type === "modified") {
               const e = calendar.getEventById(id);
-              if (e) { e.setProp("title", ev.title); e.setDates(ev.start, ev.end, { allDay: ev.allDay }); }
-              else { calendar.addEvent(ev); }
+              if (e) {
+                e.setProp("title", ev.title);
+                e.setDates(ev.start, ev.end, { allDay: ev.allDay });
+              } else {
+                calendar.addEvent(ev);
+              }
             } else if (chg.type === "removed") {
-              const e = calendar.getEventById(id); e && e.remove();
+              const e = calendar.getEventById(id);
+              e && e.remove();
             }
           });
-        }, (err) => { console.warn("calendar_events listen error:", err); });
+        }, (err) => {
+          console.warn("calendar_events listen error:", err);
+        });
     }
   </script>
 </body>
