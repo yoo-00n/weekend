@@ -472,29 +472,42 @@
       tbody.innerHTML = "";
 
       rows.forEach(r => {
+        // 이번 주 값
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
 
-        const last = Number(r.completed_last_week ?? r.completed ?? 0);
-        const lastTotal = Number((r.total_last_week ?? r.total));
+        // 지난 주 값 (없으면 이번 주 값으로 fallback)
+        const last = Number(
+          r.completed_last_week ?? r.completed ?? 0
+        );
+        const lastTotal = Number(
+          (r.total_last_week ?? r.total ?? 0)
+        );
 
-        // 진행률 현재/지난주 판단
+        // 진행률(이번 주 / 지난 주)
         const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
 
+        // pNow: 이번 주 진행률(%)
         const pNow = hasNowPct
           ? Number(r.progress)
           : pctSafe(comp, total);
-        const pPrev = hasPrevPct
+
+        // pPrev: 지난 주 진행률(%)
+        // 기본적으로 progress_last_week > fallback(지난주 완료/총필지) > 최후에는 이번 주랑 같게
+        let pPrev = hasPrevPct
           ? Number(r.progress_last_week)
           : pctSafe(last, lastTotal);
-        
+
         if (!Number.isFinite(pPrev)) {
           pPrev = pNow;
         }
+
+        // 지난주 데이터 존재 여부를 너무 빡세게 보지 말고
+        // pPrev가 유효하면 있다고 치자
         const hasPrevData = Number.isFinite(pPrev);
-       
-        // △계산
+
+        // Δ 계산
         let diff = pNow - pPrev;
         diff = Number.isFinite(diff) ? Math.round(diff * 10) / 10 : 0;
 
@@ -508,35 +521,35 @@
         const tr = document.createElement("tr");
         tr.dataset.team = r.team || "";
         tr.innerHTML = `
-          <td class="col-team">${esc(r.team || "")}</td>
-          <td class="col-name">
-            ${esc(r.name || "")}
-            ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
-          </td>
-          <td class="col-total">
-            <input type="number" class="in-total" data-id="${r.id}" value="${total}" ${isAdmin ? "" : "disabled"} />
-          </td>
-          <td class="col-done">
-            <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${(isAdmin || role === "lx") ? "" : "disabled"} />
-          </td>
-          <td class="col-progress">
-            <div class="barwrap">
-              <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
-              <span class="barlabel">${pInt}%</span>
-            </div>
-          </td>
-          <td class="col-delta delta ${hasPrevData && changed ? "changed" : ""}">${deltaCell}</td>
-          <td class="col-handover">
-            <textarea class="in-lx" data-id="${r.id}" ${(isAdmin || role === "lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
-          </td>
-          <td class="col-feedback">
-            <textarea class="in-auth" data-id="${r.id}" ${isAdmin ? "" : "disabled"}>${esc(r.authorityFeedback || "")}</textarea>
-          </td>
-        `;
+      <td class="col-team">${esc(r.team || "")}</td>
+      <td class="col-name">
+        ${esc(r.name || "")}
+        ${isAdmin ? ` <button class="btn danger btn-xs" data-del="${r.id}">삭제</button>` : ""}
+      </td>
+      <td class="col-total">
+        <input type="number" class="in-total" data-id="${r.id}" value="${total}" ${isAdmin ? "" : "disabled"} />
+      </td>
+      <td class="col-done">
+        <input type="number" class="in-completed" data-id="${r.id}" value="${comp}" ${(isAdmin || role === "lx") ? "" : "disabled"} />
+      </td>
+      <td class="col-progress">
+        <div class="barwrap">
+          <div class="bar" style="width:${Math.max(0, Math.min(100, pInt))}%"></div>
+          <span class="barlabel">${pInt}%</span>
+        </div>
+      </td>
+      <td class="col-delta delta ${hasPrevData && changed ? "changed" : ""}">${deltaCell}</td>
+      <td class="col-handover">
+        <textarea class="in-lx" data-id="${r.id}" ${(isAdmin || role === "lx") ? "" : "disabled"}>${esc(r.lx_note || r.lxNotes || "")}</textarea>
+      </td>
+      <td class="col-feedback">
+        <textarea class="in-auth" data-id="${r.id}" ${isAdmin ? "" : "disabled"}>${esc(r.authorityFeedback || "")}</textarea>
+      </td>
+    `;
         tbody.appendChild(tr);
       });
 
-      // 이벤트 바인딩
+      // 이벤트 바인딩 (그대로 유지)
       tbody.querySelectorAll(".in-completed").forEach(el => {
         if (isAdmin) {
           el.addEventListener("input", debounce(e => {
@@ -583,6 +596,55 @@
           });
         });
       }
+    }
+
+
+    // 이벤트 바인딩
+    tbody.querySelectorAll(".in-completed").forEach(el => {
+      if (isAdmin) {
+        el.addEventListener("input", debounce(e => {
+          saveFieldRoot(e.target, "completed", toNum(e.target.value));
+        }, 500));
+      } else if (role === "lx") {
+        el.addEventListener("input", debounce(e => {
+          const tr = e.target.closest("tr");
+          const total = toNum(tr.querySelector(".in-total")?.value);
+          const completedCount = toNum(e.target.value);
+          const percent = (!total || total <= 0) ? 0 : (completedCount / total * 100);
+          const pInt = Math.max(0, Math.min(100, Math.round(percent)));
+          const projId = e.target.getAttribute("data-id");
+          saveCompletedAndProgress(projId, completedCount, pInt);
+        }, 600));
+      }
+    });
+
+    tbody.querySelectorAll(".in-lx").forEach(el => {
+      if (!(isAdmin || role === "lx")) return;
+      el.addEventListener("input", debounce(e => {
+        saveFieldRoot(e.target, "lx_note", e.target.value);
+      }, 700));
+    });
+
+    tbody.querySelectorAll(".in-auth").forEach(el => {
+      if (!isAdmin) return;
+      el.addEventListener("input", debounce(e => {
+        saveFieldRoot(e.target, "authorityFeedback", e.target.value);
+      }, 700));
+    });
+
+    if (isAdmin) {
+      tbody.querySelectorAll("[data-del]").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          const id = e.currentTarget.getAttribute("data-del");
+          if (!id) return;
+          if (!confirm("이 사업지구를 삭제할까요?")) return;
+          try {
+            await db.collection("projects").doc(id).delete();
+          } catch (err) {
+            alert("삭제 실패: " + (err.message || err));
+          }
+        });
+      });
     }
 
     function toNum(v) {
@@ -816,9 +878,16 @@
     /* ========= 7) CSV ========= */
     function exportCSV(rows) {
       const headers = [
-        "team", "name", "total", "completed", "completed_last_week",
-        "progress_now", "progress_prev", "delta_pp",
-        "lx_note", "authorityFeedback"
+        "team",
+        "name",
+        "total",
+        "completed",
+        "completed_last_week",
+        "progress_now",
+        "progress_prev",
+        "delta_pp",
+        "lx_note",
+        "authorityFeedback"
       ];
       const lines = [headers.join(",")];
 
@@ -826,14 +895,27 @@
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
 
-        const last = Number(r.completed_last_week ?? r.completed ?? 0);
-        const lastTotal = Number((r.total_last_week ?? r.total ?? 0));
+        const last = Number(
+          r.completed_last_week ?? r.completed ?? 0
+        );
+        const lastTotal = Number(
+          (r.total_last_week ?? r.total ?? 0)
+        );
 
         const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
 
-        const pNow = hasNowPct ? Number(r.progress) : pctSafe(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
+        const pNow = hasNowPct
+          ? Number(r.progress)
+          : pctSafe(comp, total);
+
+        let pPrev = hasPrevPct
+          ? Number(r.progress_last_week)
+          : pctSafe(last, lastTotal);
+
+        if (!Number.isFinite(pPrev)) {
+          pPrev = pNow;
+        }
 
         const hasPrevData = Number.isFinite(pPrev);
 
@@ -870,10 +952,6 @@
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
 
-    function quote(s) {
-      const t = String(s).replaceAll('"', '""');
-      return `"${t}"`;
-    }
 
     /* ========= 8) 관리자 패널 ========= */
     const requestsBox = document.getElementById("requests");
