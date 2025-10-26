@@ -474,20 +474,27 @@
       rows.forEach(r => {
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
-        const last = Number(r.completed_last_week);
+
+        const last = Number(r.completed_last_week ?? r.completed ?? 0);
         const lastTotal = Number((r.total_last_week ?? r.total));
 
         // 진행률 현재/지난주 판단
         const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
 
-        const pNow = hasNowPct ? Number(r.progress) : pctSafe(comp, total);
-        const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
-
-        const hasPrevData =
-          hasPrevPct ||
-          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
-
+        const pNow = hasNowPct
+          ? Number(r.progress)
+          : pctSafe(comp, total);
+        const pPrev = hasPrevPct
+          ? Number(r.progress_last_week)
+          : pctSafe(last, lastTotal);
+        
+        if (!Number.isFinite(pPrev)) {
+          pPrev = pNow;
+        }
+        const hasPrevData = Number.isFinite(pPrev);
+       
+        // △계산
         let diff = pNow - pPrev;
         diff = Number.isFinite(diff) ? Math.round(diff * 10) / 10 : 0;
 
@@ -818,8 +825,9 @@
       rows.forEach(r => {
         const total = Number(r.total) || 0;
         const comp = Number(r.completed) || 0;
-        const last = Number(r.completed_last_week);
-        const lastTotal = Number((r.total_last_week ?? r.total));
+
+        const last = Number(r.completed_last_week ?? r.completed ?? 0);
+        const lastTotal = Number((r.total_last_week ?? r.total ?? 0));
 
         const hasNowPct = (typeof r.progress === "number" && Number.isFinite(r.progress));
         const hasPrevPct = (typeof r.progress_last_week === "number" && Number.isFinite(r.progress_last_week));
@@ -827,9 +835,7 @@
         const pNow = hasNowPct ? Number(r.progress) : pctSafe(comp, total);
         const pPrev = hasPrevPct ? Number(r.progress_last_week) : pctSafe(last, lastTotal);
 
-        const hasPrevData =
-          hasPrevPct ||
-          (Number.isFinite(last) && Number.isFinite(lastTotal) && lastTotal > 0);
+        const hasPrevData = Number.isFinite(pPrev);
 
         const diff = hasPrevData
           ? (Math.round((pNow - pPrev) * 10) / 10)
