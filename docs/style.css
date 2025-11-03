@@ -438,7 +438,7 @@
 
   /* hover 효과 */
   .floating-banner:hover {
-    transform: transslateX(-100%) scale(1.04);
+    transform: translateX(-100%) scale(1.04);
   }
 
   /* 배너 캡션 */
@@ -455,27 +455,7 @@
     .floating-banner {
       display: none;
     }
-  }
-
-  
-  .banner-card img {
-    width: 100%;
-    aspect-ratio: 16/9;
-    object-fit: cover;
-    display: block;
-    transition: transform .2s ease;
-  }
-
-  .banner-card:hover img {
-    transform: scale(1.05);
-  }
-
-  .banner-icon {
-    padding: 10px 12px 12px;
-    font-size: clamp(14px, 1.3vw, 16px);
-    font-weight: 700;
-    color: #e8eefb;
-  }
+}
 
   .main {
     min-width: 0;
