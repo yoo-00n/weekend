@@ -403,30 +403,38 @@
   }
 
   /* ==============================
-   반응형 floating-banner (대시보드 크기 유지)
+   좌측 여백에 배너 고정 (대시보드 바깥)
    ============================== */
 
   :root {
     --wrap-w: 1200px;
+    /* .wrap의 max-width와 동일해야 함 */
     --gutter-pad: 16px;
+    /* 랩퍼와 배너 사이 여백 */
     --banner-min: 160px;
+    /* 배너 최소 폭 */
     --banner-max: 320px;
+    /* 배너 최대 폭 */
   }
 
   /* 배너 위치 및 크기 제어 */
   .floating-banner {
     position: fixed;
     top: 180px;
-    /* 세로 위치 (필요 시 조정) */
+    /* 수직 위치 */
     left: calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad));
     transform: translateX(-100%);
-    width: clamp(var(--banner-min), calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad) * 2), var(--banner-max));
+    /* ← 랩퍼 왼쪽 바깥으로 이동 */
+    width: clamp(var(--banner-min),
+        calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad) * 2),
+        var(--banner-max));
     aspect-ratio: 16 / 10;
     z-index: 1000;
     display: block;
     text-decoration: none;
   }
 
+  /* 이미지 */
   .floating-banner img {
     width: 100%;
     height: 100%;
@@ -450,26 +458,9 @@
     text-align: left;
   }
 
-  /* 해상도 줄어들면 자동 숨김 (여백 부족 시 겹침 방지) */
+  /* 여백이 좁아지면 자동 숨김 */
   @media (max-width: calc(var(--wrap-w) + (var(--banner-min) + var(--gutter-pad)) * 2)) {
     .floating-banner {
       display: none;
-    }
-}
-
-  .main {
-    min-width: 0;
-  }
-
-  /* 그리드 overflow 방지 */
-
-  @media (max-width: 900px) {
-    .dashboard {
-      grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-      position: static;
-      height: auto;
     }
   }
