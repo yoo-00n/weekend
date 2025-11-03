@@ -359,7 +359,6 @@
   .tools-layout {
     display: grid;
     grid-template-columns: 1fr 440px;
-    /* 우측 폭 고정 */
     gap: 20px;
     align-items: stretch;
   }
@@ -368,8 +367,6 @@
     .tools-layout {
       grid-template-columns: 1fr;
     }
-
-    /* 좁으면 한 줄로 */
   }
 
   /* 캘린더 카드 */
@@ -408,13 +405,9 @@
 
   :root {
     --wrap-w: 1200px;
-    /* .wrap의 max-width와 동일해야 함 */
     --gutter-pad: 16px;
-    /* 랩퍼와 배너 사이 여백 */
     --banner-min: 160px;
-    /* 배너 최소 폭 */
     --banner-max: 320px;
-    /* 배너 최대 폭 */
   }
 
   /* 배너 위치 및 크기 제어 */
