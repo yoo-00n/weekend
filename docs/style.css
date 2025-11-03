@@ -408,13 +408,9 @@
 
   :root {
     --wrap-w: 1200px;
-    /* .wrap의 max-width 값과 반드시 동일 */
     --gutter-pad: 16px;
-    /* 좌측 기본 여백 */
     --banner-min: 160px;
-    /* 배너 최소 너비 */
     --banner-max: 320px;
-    /* 배너 최대 너비 */
   }
 
   /* 배너 위치 및 크기 제어 */
@@ -423,26 +419,26 @@
     top: 180px;
     /* 세로 위치 (필요 시 조정) */
     left: calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad));
+    transform: translateX(-100%);
     width: clamp(var(--banner-min), calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad) * 2), var(--banner-max));
     aspect-ratio: 16 / 10;
     z-index: 1000;
     display: block;
     text-decoration: none;
-    transition: transform 0.25s ease;
   }
 
-  /* 배너 이미지 */
   .floating-banner img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+    transition: transform .2s ease;
   }
 
   /* hover 효과 */
   .floating-banner:hover {
-    transform: scale(1.04);
+    transform: transslateX(-100%) scale(1.04);
   }
 
   /* 배너 캡션 */
@@ -455,13 +451,13 @@
   }
 
   /* 해상도 줄어들면 자동 숨김 (여백 부족 시 겹침 방지) */
-  @media (max-width: 1280px) {
+  @media (max-width: calc(var(--wrap-w) + (var(--banner-min) + var(--gutter-pad)) * 2)) {
     .floating-banner {
       display: none;
     }
   }
 
-
+  
   .banner-card img {
     width: 100%;
     aspect-ratio: 16/9;
