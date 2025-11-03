@@ -402,33 +402,65 @@
     border-radius: 6px;
   }
 
-  .dashboard {
-    --gap: clamp(12px, 2vw, 24px);
-    --sidebar-w: clamp(220px, 18vw, 320px);
-    display: grid;
-    grid-template-columns: var(--sidebar-w) 1fr;
-    gap: var(--gap);
-    align-items: start;
+  /* ==============================
+   반응형 floating-banner (대시보드 크기 유지)
+   ============================== */
+
+  :root {
+    --wrap-w: 1200px;
+    /* .wrap의 max-width 값과 반드시 동일 */
+    --gutter-pad: 16px;
+    /* 좌측 기본 여백 */
+    --banner-min: 160px;
+    /* 배너 최소 너비 */
+    --banner-max: 320px;
+    /* 배너 최대 너비 */
   }
 
-  .sidebar {
-    position: sticky;
-    top: 16px;
-    /* 헤더 높이에 맞춰 필요시 조정 */
-    height: calc(100dvh - 32px);
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-  }
-
-  .banner-card {
+  /* 배너 위치 및 크기 제어 */
+  .floating-banner {
+    position: fixed;
+    top: 180px;
+    /* 세로 위치 (필요 시 조정) */
+    left: calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad));
+    width: clamp(var(--banner-min), calc((100vw - var(--wrap-w)) / 2 - var(--gutter-pad) * 2), var(--banner-max));
+    aspect-ratio: 16 / 10;
+    z-index: 1000;
     display: block;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
-    background: #0c1b32;
     text-decoration: none;
+    transition: transform 0.25s ease;
   }
+
+  /* 배너 이미지 */
+  .floating-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+  }
+
+  /* hover 효과 */
+  .floating-banner:hover {
+    transform: scale(1.04);
+  }
+
+  /* 배너 캡션 */
+  .floating-banner .banner-icon {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8eefb;
+    text-align: left;
+  }
+
+  /* 해상도 줄어들면 자동 숨김 (여백 부족 시 겹침 방지) */
+  @media (max-width: 1280px) {
+    .floating-banner {
+      display: none;
+    }
+  }
+
 
   .banner-card img {
     width: 100%;
