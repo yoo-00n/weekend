@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>남원시 지적재조사 공정 beta</title>
+  <title>남원시 지적재조사사업 협의율 대시보드</title>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -21,7 +21,7 @@
   <header>
     <div class="wrap flex" style="padding:12px 20px">
       <div class="flex" style="gap:10px">
-        <span class="tag">사업지구 공정률 대시보드</span>
+        <span class="tag">남원시 지적재조사사업 협의율 대시보드</span>
       </div>
       <div class="spacer"></div>
       <div class="flex">
@@ -34,177 +34,157 @@
   </header>
 
   <main class="wrap" style="padding-top:16px">
-    <div class="dash">
-      <div class="card">
-        <div class="pad">
-          <h2>전체 공정률</h2>
-          <div class="kpi">
-            <span id="kpiProgress" class="big">0%</span>
-            <span class="sub" id="kpiParcels">0 / 0 필지</span>
-          </div>
-          <canvas id="overallDonut" style="margin-top:6px"></canvas>
-        </div>
-      </div>
+    <div class="dashboard">
 
-      <div class="dash-right">
-        <div class="card">
-          <div class="pad">
-            <h2>Top 3</h2>
-            <ol id="top3" class="muted" style="padding-left:18px;margin:0"></ol>
-            <div class="footer">진행률(%) 기준</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="pad">
-            <h2>Bottom 3</h2>
-            <ol id="bottom3" class="muted" style="padding-left:18px;margin:0"></ol>
-            <div class="footer">진행률(%) 기준</div>
-          </div>
-        </div>
+      <aside class="sidebar">
+        <a href="https://yoo-00n.github.io/JAJOSA/" target="_blank" class="banner-card">
+          <img src="https://raw.githubusercontent.com/yoo-00n/weekend/main/docs/banner.png" alt="경계협의서 Beta">
+          <div class="banner-icon">📝 경계협의서 <b>Beta</b></div>
+        </a>
+      </aside>
 
-        <!-- NOTICE -->
-        <div class="card span-2">
-          <div class="pad">
-            <h2>NOTICE</h2>
-            <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
-            <div id="checklistStatus" class="footer muted">읽기 전용</div>
+      <section class="main">
+
+        <div class="dash">
+          <div class="card">
+            <div class="pad">
+              <h2>전체 공정률</h2>
+              <div class="kpi">
+                <span id="kpiProgress" class="big">0%</span>
+                <span class="sub" id="kpiParcels">0 / 0 필지</span>
+              </div>
+              <canvas id="overallDonut" style="margin-top:6px"></canvas>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="card" style="margin-top:16px">
-      <div class="pad">
-        <h2>관리 도구</h2>
-
-        <div class="tools-layout">
-          <section>
-            <div class="btn-row" style="margin-bottom:10px">
-              <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
-              <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
-              <button id="btnExport" class="btn">CSV 내보내기</button>
-              <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
-              <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
+          <div class="dash-right">
+            <div class="card">
+              <div class="pad">
+                <h2>Top 3</h2>
+                <ol id="top3" class="muted" style="padding-left:18px;margin:0"></ol>
+                <div class="footer">진행률(%) 기준</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pad">
+                <h2>Bottom 3</h2>
+                <ol id="bottom3" class="muted" style="padding-left:18px;margin:0"></ol>
+                <div class="footer">진행률(%) 기준</div>
+              </div>
             </div>
 
-            <div class="row cols-2">
-              <div>
-                <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
+            <!-- NOTICE -->
+            <div class="card span-2">
+              <div class="pad">
+                <h2>NOTICE</h2>
+                <textarea id="checklist" placeholder="예: 자료 보완 대상 지구, 일정 등" disabled></textarea>
+                <div id="checklistStatus" class="footer muted">읽기 전용</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="pad">
+            <h2>관리 도구</h2>
+
+            <div class="tools-layout">
+              <section>
+                <div class="btn-row" style="margin-bottom:10px">
+                  <button id="btnNewWeek" class="btn" disabled>새 주 시작(지난 주 이월)</button>
+                  <button id="btnAddSample" class="btn accent" disabled>샘플 데이터 추가</button>
+                  <button id="btnExport" class="btn">CSV 내보내기</button>
+                  <button id="btnRequestEdit" class="btn">편집 권한 요청</button>
+                  <button id="btnDeleteAll" class="btn danger hidden">전체 삭제(관리자)</button>
+                </div>
+
                 <div class="row cols-2">
-                  <input id="inName" type="text" placeholder="사업지구명" />
-                  <input id="inTeam" type="text" placeholder="담당팀" />
-                </div>
-                <div class="row cols-2" style="margin-top:8px">
-                  <input id="inTotal" type="number" placeholder="총 필지" />
-                  <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
-                </div>
-                <div class="btn-row" style="margin-top:8px">
-                  <button id="btnAddProject" class="btn" disabled>추가</button>
-                </div>
-                <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
-                <div class="footer">※ lx - 공정률, 일정 편집 가능</div>
-                <div class="footer">※ namwon - 일정 편집 가능</div>
-              </div>
+                  <div>
+                    <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">사업지구 추가</h3>
+                    <div class="row cols-2">
+                      <input id="inName" type="text" placeholder="사업지구명" />
+                      <input id="inTeam" type="text" placeholder="담당팀" />
+                    </div>
+                    <div class="row cols-2" style="margin-top:8px">
+                      <input id="inTotal" type="number" placeholder="총 필지" />
+                      <input id="inCompleted" type="number" placeholder="완료(이번 주)" />
+                    </div>
+                    <div class="btn-row" style="margin-top:8px">
+                      <button id="btnAddProject" class="btn" disabled>추가</button>
+                    </div>
+                    <div class="footer">※ ADMIN만 추가/삭제 가능. Δ는 지난 주 대비 변화(pp).</div>
+                    <div class="footer">※ lx - 공정률, 일정 편집 가능</div>
+                    <div class="footer">※ namwon - 일정 편집 가능</div>
+                  </div>
 
-              <div>
-                <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
-                <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-                  <li>1팀 : 김용수, 김두리</li>
-                  <li>2팀 : 이대연, 이승원</li>
-                  <li>3팀 : 김국환, 노시준</li>
-                </ul>
-                <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">LX</h3>
-                <ul class="muted" style="margin:0 0 6px 16px;padding:0">
-                  <li>나정환 : 사석/도랑/사매2/송내/강석</li>
-                  <li>이근행 : 호곡/평촌/옥전</li>
-                  <li>김형윤 : 부절/서곡</li>
-                  <li>박광훈 : 호경/내기</li>
-                </ul>
-              </div>
+                  <div>
+                    <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">남원시청</h3>
+                    <ul class="muted" style="margin:0 0 6px 16px;padding:0">
+                      <li>1팀 : 김용수, 김두리</li>
+                      <li>2팀 : 이대연, 이승원</li>
+                      <li>3팀 : 김국환, 노시준</li>
+                    </ul>
+                    <h3 style="margin:0 0 8px 0;color:#cfe0ff;font-size:14px">LX</h3>
+                    <ul class="muted" style="margin:0 0 6px 16px;padding:0">
+                      <li>나정환 : 사석/도랑/사매2/송내/강석</li>
+                      <li>이근행 : 호곡/평촌/옥전</li>
+                      <li>김형윤 : 부절/서곡</li>
+                      <li>박광훈 : 호경/내기</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="calendar-box">
+                <div id="calendar"></div>
+              </aside>
             </div>
-          </section>
-
-          <aside class="calendar-box">
-            <div id="calendar"></div>
-          </aside>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="card" style="margin-top:16px">
-      <div class="pad">
-        <h2>담당팀별 사업지구 현황</h2>
-        <table>
-          <thead>
-            <tr>
-              <th class="col-team">
-                담당팀
-                <select id="teamFilter" style="margin-left:.5rem;max-width:120px">
-                  <option value="__ALL__">전체</option>
-                </select>
-              </th>
-              <th class="col-name">사업지구</th>
-              <th class="col-total">총 필지</th>
-              <th class="col-done">완료 (이번 주)</th>
-              <th class="col-progress">공정률 (%)</th>
-              <th class="col-delta">Δ 주간 (pp)</th>
-              <th class="col-handover">LX 전달사항</th>
-              <th class="col-feedback">소관청 피드백</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-    </div>
+        <div class="card" style="margin-top:16px">
+          <div class="pad">
+            <h2>담당팀별 사업지구 현황</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-team">
+                    담당팀
+                    <select id="teamFilter" style="margin-left:.5rem;max-width:120px">
+                      <option value="__ALL__">전체</option>
+                    </select>
+                  </th>
+                  <th class="col-name">사업지구</th>
+                  <th class="col-total">총 필지</th>
+                  <th class="col-done">완료 (이번 주)</th>
+                  <th class="col-progress">공정률 (%)</th>
+                  <th class="col-delta">Δ 주간 (pp)</th>
+                  <th class="col-handover">LX 전달사항</th>
+                  <th class="col-feedback">소관청 피드백</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
 
-    <div id="adminPanel" class="card hidden" style="margin-top:16px">
-      <div class="pad">
-        <h2>관리자 패널 · 권한 승인</h2>
-        <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
-        <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
-        <div id="requests"></div>
-        <h3 style="color:#cfe0ff;margin-top:12px">현재 권한 사용자</h3>
-        <div id="editors"></div>
-      </div>
+        <div id="adminPanel" class="card hidden" style="margin-top:16px">
+          <div class="pad">
+            <h2>관리자 패널 · 권한 승인</h2>
+            <div class="footer">여기 보이는 항목은 <b>role=admin</b> 사용자에게만 표시됩니다.</div>
+            <h3 style="color:#cfe0ff;margin-top:12px">승인 대기 요청</h3>
+            <div id="requests"></div>
+            <h3 style="color:#cfe0ff;margin-top:12px">현재 권한 사용자</h3>
+            <div id="editors"></div>
+          </div>
+        </div>
+
+      </section>
+      <!-- /우측 콘텐츠 -->
     </div>
   </main>
 
-  <!-- 도넛 차트 옆 배너 -->
-  <a href="https://yoo-00n.github.io/JAJOSA/" target="_blank" class="floating-banner">
-    <img src="https://raw.githubusercontent.com/yoo-00n/weekend/main/docs/banner.png" alt="경계협의서 Beta">
-    <div class="banner-icon">📝경계협의서 Beta</div>
-  </a>
-
-  <style>
-    .floating-banner {
-      position: fixed;
-      top: 180px;
-      left: 40px;
-      z-index: 1000;
-      text-align: center;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .floating-banner img {
-      width: 250px;
-      height: 170px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
-      transition: transform .2s ease;
-    }
-
-    .floating-banner img:hover {
-      transform: scale(1.08);
-    }
-
-    .floating-banner .banner-text {
-      margin-top: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #e8eefb;
-    }
-  </style>
+  
 
   <script>
     /* ========= 1) Firebase 설정 ========= */
